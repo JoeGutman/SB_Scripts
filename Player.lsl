@@ -13,6 +13,17 @@ integer roll_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active f
 integer roll_speedlimit = 20;
 integer control_back_count = 0;
 
+integer arrow_link;
+key arrow_texture = NULL_KEY;
+vector arrow_scale;
+vector arrow_startpos = <0, .25, 0>;
+vector arrow_pos;
+rotation arrow_currentrot;
+rotation arrow_newrot;
+
+vector base_scale;
+
+
 key player;
 
 roll_ball()
@@ -29,6 +40,16 @@ aim_move()
 timeout_set()
 {
     llSetTimerEvent(.5);
+}
+
+integer Desc2LinkNum(string sDesc)
+{
+    integer i;
+    integer iPrims;
+    //
+    if (llGetAttached()) iPrims = llGetNumberOfPrims(); else iPrims = llGetObjectPrimCount(llGetKey());
+    for (i = iPrims; i >= 0; i--) if (llList2String(llGetLinkPrimitiveParams(i, [PRIM_DESC]), 0) == sDesc) return i;
+    return -1;
 }
 
 default
@@ -80,7 +101,11 @@ state play
     {
         if (perm & PERMISSION_TAKE_CONTROLS)
         {
-            llTakeControls(CONTROL_FWD | CONTROL_BACK | CONTROL_UP | CONTROL_DOWN | CONTROL_LEFT | CONTROL_RIGHT | CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT, TRUE, FALSE);    
+            llTakeControls(CONTROL_FWD | CONTROL_BACK | CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT, TRUE, FALSE);                
+        	arrow_link = Desc2LinkNum("arrow");
+
+        	vector current_pos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
+    		llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, current_pos.y, current_pos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, 180>*DEG_TO_RAD)), PRIM_TEXTURE,  ALL_SIDES, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, ALL_SIDES, < 1, 1, 1>, 1.0]);
         }    
     }
     link_message(integer sender_num, integer num, string str, key id)
@@ -92,7 +117,7 @@ state play
     }
     control(key id, integer held, integer pressed)
     {
-        if (CONTROL_FWD & pressed && CONTROL_BACK & pressed && CONTROL_ROT_LEFT & pressed && CONTROL_ROT_RIGHT & pressed && CONTROL_ML_LBUTTON & pressed)
+        if (CONTROL_FWD & pressed && CONTROL_BACK & pressed && CONTROL_ROT_LEFT & pressed && CONTROL_ROT_RIGHT & pressed)
         {
             timer_count = 0;
         }
