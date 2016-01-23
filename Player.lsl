@@ -11,10 +11,16 @@ integer aim_rotlimit = 20; //in degrees
 float aim_pos = 0;
 float aim_posincrement = .05;
 float aim_poslimit; // based off of arrow size and lane size
-integer roll_speed = 0; 
-integer roll_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
-integer roll_speedlimit = 20;
+
+string ball_name = "[BBS] Skeeball Ball";
+integer ball_life = 10; // parameter that will be passed to ball to tell ball how long to stay rezzed, in seconds.
+integer ball_speed = 0; 
+integer ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
+integer ball_speedlimit = 20;
+integer ball_mass = 1;
 integer control_back_count = 0;
+vector ball_rezpos = < 0, 0, .1>; // The distance to adjust the ball rez position from the aim arrow. 
+vector ball_direction = <0.0,1.0,0.0>; // apply velocity in x, y, or z heading.
 
 //arrow prim settings
 integer arrow_link;
@@ -26,14 +32,19 @@ float arrow_poslimit;
 rotation arrow_rot;
 
 vector base_scale;
-
-
 key player;
 
-roll_ball()
+ball_roll()
 {
-    llOwnerSay((string)roll_speed);
-    roll_speed = 0;
+    llOwnerSay((string)ball_speed);
+    arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
+    arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
+
+    vector velocity = (ball_mass * ball_speed * ball_direction)*(llGetRot()*arrow_rot);
+    vector position = ((arrow_pos + llGetPos()) + ball_rezpos);
+
+    llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
+    ball_speed = 0;
 }
 
 aim_move()
@@ -178,13 +189,13 @@ state play
                 control_back_count ++;
                 if (control_back_count <= 1)
                 {
-                    roll_speedflip = 1;
+                    ball_speedflip = 1;
                 }
                 else
                 {
                     control_back_count = 0;
-                    roll_speedflip = 0;
-                    roll_ball();
+                    ball_speedflip = 0;
+                    ball_roll();
                 }
             }
         }    
@@ -201,22 +212,23 @@ state play
             state gameover;
         }
 
-        if(roll_speedflip == 1)
+        if(ball_speedflip == 1)
         {
-            roll_speed ++;
-            if (roll_speed >= roll_speedlimit)
+            ball_speed ++;
+            if (ball_speed >= ball_speedlimit)
             {
-                roll_speedflip = 2;
+                ball_speedflip = 2;
             }
+            llOwnerSay((string)ball_speed);
         }
-        else if (roll_speedflip == 2)
+        else if (ball_speedflip == 2)
         {
-            roll_speed --;
-            if (roll_speed <= 0)
+            ball_speed --;
+            if (ball_speed <= 0)
             {
-                roll_speedflip = 1;
+                ball_speedflip = 1;
             } 
-
+            llOwnerSay((string)ball_speed);
         }
     }
 }
