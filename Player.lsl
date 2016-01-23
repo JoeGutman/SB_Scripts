@@ -1,6 +1,7 @@
 integer price = 1; // Price to play game in L$
 integer timeout = 600; // Time that can pass, in half seconds, with no interaction before game ends.
-integer timer_count = 0;
+float timer_count = 0;
+float current_time;
 vector base_scale;
 
 //player settings
@@ -20,7 +21,7 @@ float aim_poslimit; // based off of arrow size and lane size
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
 integer ball_count = 0; // Amount of balls that have been rolled.
-integer ball_limit = 9; // Max amount of balls that can be rolled.
+integer ball_limit = 1; // Max amount of balls that can be rolled.
 integer ball_life = 10; // parameter that will be passed to ball to tell ball how long to stay rezzed, in seconds.
 integer ball_speed = 0; 
 integer ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
@@ -42,8 +43,24 @@ rotation arrow_rot;
 
 //scoreboard settings
 integer scoreboard_link;
-string scoreboard_desc = "scoreboard";
 integer highscoreboard_length = 10; //How many players/scores can be in the highscore/player lists.
+integer scoreboard_flash = 0;
+integer scoreboard_flashlimit = 6; //2 for each flash cycle
+string scoreboard_desc = "scoreboard";
+list scoreboard_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69d8-f048-d24d3bbd58ac","92e5fe83-cea4-6bfd-c32c-21ee32a15b90","7ab4ca65-528f-aeab-f7c4-de7e9dd0cd48","11dceab3-9121-d9ac-8741-34ccaa509f0d","d9d87ec3-7379-c859-e663-d7641736df08","5ae3f95c-91e8-9683-2666-7b2ae1ebd9b0","c3d04bb9-2a91-6857-944a-8a73caaf1f42","6df27617-a5f8-8f14-f196-490089ba8955","4196499f-7554-16ea-d545-2bad00f2f045","ae8f016c-8ccc-b1d0-3a6a-213d1ba8e13a"];
+
+
+initializer()
+{
+    aim_rot = 0;
+    aim_pos = 0;
+    player_score = 0;
+    ball_count = 0;
+    ball_speed = 0;
+    timer_count = 0;
+    ball_speedflip = 0;
+    scoreboard_flash = 0;
+}
 
 ball_roll()
 {
@@ -60,6 +77,10 @@ ball_roll()
         llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
         ball_speed = 0;
     }
+    if (ball_count >= ball_limit)
+    {
+        current_time = timer_count;
+    }
 }
 
 aim_move()
@@ -70,29 +91,67 @@ aim_move()
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
 }
 
+scoreboard()
+{
+    integer i = llStringLength((string)player_score);
+    integer faces = llGetLinkNumberOfSides(scoreboard_link);
+    while (i > 0)
+    {
+        integer subscore = (integer)llGetSubString((string)player_score, i-1, i-1);
+        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, faces-1, llList2Key(scoreboard_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        faces --;
+        i --;
+    }
+}
+
 highscore()
 {
-    if (llGetListLength(player_highscores) != 0) //Check if there are any highscores
+
+    integer i = 0;
+    integer list_length = llGetListLength(player_highscores);
+    if (list_length > 1)
     {
-        integer i = 0;
-        while ( i < llGetListLength(player_highscores))
+        while ( i < list_length)
         {
-            if (llList2Integer(player_highscores, i) <= player_score)
+            if ( player_score <= llList2Integer(player_highscores, i) && llList2Integer(player_highscores, i+1) < player_score )
             {
-                llListInsertList(player_highscores, [player_score], i);
-                llListInsertList(player_names, [llKey2Name(player)], i);
+                player_highscores = llListInsertList(player_highscores, [player_score], i+1);
+                player_names = llListInsertList(player_names, [llKey2Name(player)], i+1);
+                i = list_length;
             }
-            else if (llList2Integer(player_highscores, i) > player_score)
+            else if (player_score > llList2Integer(player_highscores, i))
             {
-                llListInsertList(player_highscores, [player_score], i+1);
-                llListInsertList(player_names, [llKey2Name(player)], i+1);
+                player_highscores = llListInsertList(player_highscores, [player_score], i);
+                player_names = llListInsertList(player_names, [llKey2Name(player)], i);
+                i = list_length;
             }
+            else
+            {
+                i++;
+            }
+            //llOwnerSay((string)llGetFreeMemory( ));
         }
     }
-    else //if no highscores then add current player and score
+    else if (list_length == 1)
+    {
+        if (player_score <= llList2Integer(player_highscores, i))
+        {
+            player_highscores += player_score;
+            player_names += llKey2Name(player);
+            i = list_length;
+        }
+        else if (player_score > llList2Integer(player_highscores, i))
+        {
+            player_highscores = llListInsertList(player_highscores, [player_score], i);
+            player_names = llListInsertList(player_names, [llKey2Name(player)], i);
+            i = list_length;
+        }    
+    }
+    else if(llGetListLength(player_highscores) == 0) //if no highscores then add current player and score
     {
         player_highscores += player_score;
         player_names += llKey2Name(player);
+        llOwnerSay((string)llGetFreeMemory( ));
     }
 
     if (llGetListLength(player_highscores) > highscoreboard_length) //trim highscore lists to only X amount of entries.
@@ -100,8 +159,8 @@ highscore()
         player_highscores = llDeleteSubList(player_highscores, highscoreboard_length, -1);
         player_names = llDeleteSubList(player_names, highscoreboard_length, -1);
     }
-    llList2CSV(player_highscores);
-    llList2CSV(player_names);
+    //llOwnerSay(llList2CSV(player_highscores));
+    //llOwnerSay(llList2CSV(player_names));
 }
 
 timeout_set()
@@ -123,7 +182,12 @@ default
     state_entry()
     {
         llSetPayPrice(PAY_HIDE, [PAY_HIDE, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
-        llRequestPermissions(llGetOwner(), PERMISSION_DEBIT);            
+        llRequestPermissions(llGetOwner(), PERMISSION_DEBIT); 
+
+        arrow_link = Desc2LinkNum(arrow_desc);
+        scoreboard_link = Desc2LinkNum(scoreboard_desc);
+        
+        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);      
     }
     run_time_permissions(integer perm)
     {
@@ -149,7 +213,9 @@ state pay
         }
         else if (amount == price)    
         {
-            llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded."); 
+            llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
+            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);   
+            initializer();
             player = id;
             state play;
         }
@@ -168,16 +234,13 @@ state play
         if (perm & PERMISSION_TAKE_CONTROLS)
         {
             llTakeControls(CONTROL_FWD | CONTROL_BACK | CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT, TRUE, FALSE);                
-            arrow_link = Desc2LinkNum(arrow_desc);
-            scoreboard_link = Desc2LinkNum(scoreboard_desc);
-
 
             arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
-
             base_scale = llGetScale();
             arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
             aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
             llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, 180>*DEG_TO_RAD)), PRIM_TEXTURE,  ALL_SIDES, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, ALL_SIDES, < 1, 1, 1>, 1.0]);
+            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);  
         }    
     }
     control(key id, integer held, integer pressed)
@@ -187,7 +250,7 @@ state play
             timer_count = 0;
         }
         
-        if (ball_count <= ball_limit)
+        if (ball_count < ball_limit)
         {
             if (CONTROL_FWD & held)
             {
@@ -239,10 +302,6 @@ state play
                 }
             }
         }    
-        else
-        {
-            state gameover;
-        }
     }
     link_message(integer sender_num, integer num, string str, key id)
     {
@@ -251,16 +310,16 @@ state play
         if (index != -1)
         {
             player_score += (integer)llGetSubString(string_test, 6, -1);
-            llOwnerSay((string)player_score);
+            //llOwnerSay((string)player_score);
+            scoreboard();
             if (ball_count >= ball_limit)
             {
                 state gameover;
-            } 
-        }  
+            }
+        }
     }
     timer()
     {
-        float current_time;
         timer_count ++;
         if (timer_count >= timeout)
         {
@@ -286,14 +345,10 @@ state play
             llOwnerSay((string)ball_speed);
         }
 
-        if (ball_count >= ball_limit )
-            {
-                current_time = timer_count;
-                if (timer_count - current_time >= ball_life)
-                {
-                    state gameover;
-                }
-            }
+        if (timer_count - current_time >= ball_life && ball_count >= ball_limit)
+        {
+            state gameover;
+        }
     }
 }
 
@@ -301,8 +356,28 @@ state gameover
 {
     state_entry()
     {
-        highscore();
         llRegionSayTo(player, 0, "Gameover. You have scored " + (string)player_score + " points. Thanks for playing."); 
-        state pay;
+        llSetTimerEvent(.25);
+    }
+    timer()
+    {
+        if (scoreboard_flash < scoreboard_flashlimit)
+        {
+            if (llList2Integer(llGetLinkPrimitiveParams(scoreboard_link, [PRIM_FULLBRIGHT, ALL_SIDES]), 0) == TRUE)
+            {
+                llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_GLOW, ALL_SIDES, 0.00, PRIM_FULLBRIGHT, ALL_SIDES, FALSE]);
+            }
+            else
+            {
+                llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_GLOW, ALL_SIDES, 0.02, PRIM_FULLBRIGHT, ALL_SIDES, TRUE]);
+            }
+            scoreboard_flash ++;
+        }
+        else
+        {
+            highscore();
+            initializer();
+            state pay;
+        }
     }
 }
