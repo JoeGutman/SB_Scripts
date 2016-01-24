@@ -151,7 +151,6 @@ highscore()
     {
         player_highscores += player_score;
         player_names += llKey2Name(player);
-        llOwnerSay((string)llGetFreeMemory( ));
     }
 
     if (llGetListLength(player_highscores) > highscoreboard_length) //trim highscore lists to only X amount of entries.
