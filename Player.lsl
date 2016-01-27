@@ -44,6 +44,12 @@ float arrow_poslimit;
 rotation arrow_rot;
 integer arrow_rotoffset = 90;
 
+//mode indicator settings
+integer mode_link;
+key mode_rottexture = "a1571152-0a05-2fc4-763b-505b806f1307";
+key mode_movetexture = "faf75693-c4c2-911d-8bc7-c3a07cdce016";
+
+
 //scoreboard settings
 integer scoreboard_link;
 integer highscoreboard_length = 10; //How many players/scores can be in the highscore/player lists.
@@ -96,15 +102,13 @@ aim_move()
 
 aim_modechange()
 {
-    if (aim_mode = 1)
+    if (aim_mode == 1)
     {
-        llSetLinkAlpha(arrow_link, 1.0, 1);
-        llSetLinkAlpha(arrow_link, 0.0, 2);
+        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, faces-1, llList2Key(scoreboard_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
     }
-    if (aim_mode = 2)
+    if (aim_mode == 2)
     {
-        llSetLinkAlpha(arrow_link, 0.0, 1);
-        llSetLinkAlpha(arrow_link, 1.0, 2);    
+        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, faces-1, llList2Key(scoreboard_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);  
     }   
 }
 
@@ -210,7 +214,7 @@ default
         if (perm & PERMISSION_DEBIT)
         {
             state pay;
-        }    
+        }
     }
 }
 
@@ -258,6 +262,7 @@ state play
             llOwnerSay((string)base_scale.x + " " + (string)arrow_scale.x);
             llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 0, 0>, 1.0]);
             aim_modechange();
+            llOwnerSay("mode= " + (string)aim_mode);
         }    
     }
     control(key id, integer held, integer pressed)
@@ -269,41 +274,26 @@ state play
 
         if (CONTROL_FWD & pressed)
         {
-            control_fwd_count ++;
-            if (control_fwd_count >= 2)
+            control_fwd_count ++; //triggers twice for one press and lift
+            if (control_fwd_count % 2)
             {
-                aim_mode ++;
-                if (aim_mode > 2)
+                if (aim_mode == 1)
                 {
-                    aim_mode = 1;
+                    aim_mode ++;
+                }
+                else 
+                {
+                    aim_mode --;
                 }
                 aim_modechange();
-                control_fwd_count = 0;
             }
+            llOwnerSay("press= " + (string)control_fwd_count);
+            llOwnerSay("mode= " + (string)aim_mode);
         }
         
         if (ball_count < ball_limit)
         {
-            if (aim_mode == 2)
-            {
-                if (CONTROL_ROT_LEFT & held)
-                {
-                    if (aim_rot < aim_rotlimit)
-                    {
-                        aim_rot ++;
-                        aim_move();
-                    }
-                }    
-                else if (CONTROL_ROT_RIGHT & held)
-                {
-                    if (aim_rot > -aim_rotlimit)
-                    {
-                        aim_rot --;
-                        aim_move();
-                    }
-                }
-            }
-            else if (aim_mode == 1)
+            if (aim_mode == 1)
             {
                 if (CONTROL_ROT_LEFT & held)
                 {
@@ -318,6 +308,25 @@ state play
                     if (aim_pos < aim_poslimit)
                     {
                         aim_pos ++;
+                        aim_move();
+                    }
+                }
+            }
+            else if (aim_mode == 2)
+            {
+                if (CONTROL_ROT_LEFT & held)
+                {
+                    if (aim_rot < aim_rotlimit)
+                    {
+                        aim_rot ++;
+                        aim_move();
+                    }
+                }    
+                else if (CONTROL_ROT_RIGHT & held)
+                {
+                    if (aim_rot > -aim_rotlimit)
+                    {
+                        aim_rot --;
                         aim_move();
                     }
                 }
