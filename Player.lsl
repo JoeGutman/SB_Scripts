@@ -108,8 +108,14 @@ aim_modechange()
     }
     if (aim_mode == 2)
     {
+<<<<<<< HEAD
         llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, faces-1, llList2Key(scoreboard_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);  
     }   
+=======
+        llSetLinkAlpha(arrow_link, 0.0, 1);
+        llSetLinkAlpha(arrow_link, 1.0, 2);    
+    }
+>>>>>>> refs/heads/develop
 }
 
 scoreboard()
@@ -262,7 +268,19 @@ state play
             llOwnerSay((string)base_scale.x + " " + (string)arrow_scale.x);
             llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 0, 0>, 1.0]);
             aim_modechange();
+<<<<<<< HEAD
             llOwnerSay("mode= " + (string)aim_mode);
+=======
+        }    
+    }
+    link_message(integer sender_num, integer num, string str, key id)
+    {
+        if (str == "quit")
+        {
+            state gameover;
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, 180>*DEG_TO_RAD)), PRIM_TEXTURE,  ALL_SIDES, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, ALL_SIDES, < 1, 1, 1>, 1.0]);
+            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);  
+>>>>>>> refs/heads/develop
         }    
     }
     control(key id, integer held, integer pressed)
