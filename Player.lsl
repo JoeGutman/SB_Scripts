@@ -5,6 +5,7 @@ integer ball_count = 0; // Amount of balls that have been rolled.
 integer ball_limit = 9; // Max amount of balls that can be rolled.
 
 //aim settings
+integer aim_mode = 1; // aim_mode 0 = Move Left/Right; aim_mode 3 = Rot Left/Right
 integer aim_rot = 0;
 integer aim_rotincrement = 1;
 integer aim_rotlimit = 20; //in degrees
@@ -15,6 +16,7 @@ integer roll_speed = 0;
 integer roll_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
 integer roll_speedlimit = 20;
 integer control_back_count = 0;
+integer control_fwd_count = 0;
 
 //arrow prim settings
 integer arrow_link;
@@ -24,6 +26,7 @@ vector arrow_startpos;
 vector arrow_pos;
 float arrow_poslimit;
 rotation arrow_rot;
+integer arrow_rotoffset = 90;
 
 vector base_scale;
 
@@ -41,9 +44,23 @@ aim_move()
     //llOwnerSay((string)aim_pos + " " + (string)aim_rot);
 
     arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
-    arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)-180>*DEG_TO_RAD);
+    arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)-arrow_rotoffset>*DEG_TO_RAD);
     arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
+}
+
+aim_modechange()
+{
+    if (aim_mode = 1)
+    {
+        llSetLinkAlpha(arrow_link, 1.0, 1);
+        llSetLinkAlpha(arrow_link, 0.0, 2);
+    }
+    if (aim_mode = 2)
+    {
+        llSetLinkAlpha(arrow_link, 0.0, 1);
+        llSetLinkAlpha(arrow_link, 1.0, 2);    
+    }
 }
 
 timeout_set()
@@ -119,7 +136,8 @@ state play
             arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
             aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
             llOwnerSay((string)base_scale.x + " " + (string)arrow_scale.x);
-            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, 180>*DEG_TO_RAD)), PRIM_TEXTURE,  ALL_SIDES, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, ALL_SIDES, < 1, 1, 1>, 1.0]);
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 0, 0>, 1.0]);
+            aim_modechange();
         }    
     }
     link_message(integer sender_num, integer num, string str, key id)
@@ -135,10 +153,25 @@ state play
         {
             timer_count = 0;
         }
+
+        if (CONTROL_FWD & pressed)
+        {
+            control_fwd_count ++;
+            if (control_fwd_count >= 2)
+            {
+                aim_mode ++;
+                if (aim_mode > 2)
+                {
+                    aim_mode = 1;
+                }
+                aim_modechange();
+                control_fwd_count = 0;
+            }
+        }
         
         if (ball_count <= ball_limit)
         {
-            if (CONTROL_FWD & held)
+            if (aim_mode == 2)
             {
                 if (CONTROL_ROT_LEFT & held)
                 {
@@ -156,23 +189,26 @@ state play
                         aim_move();
                     }
                 }
+            }
+            else if (aim_mode == 1)
+            {
+                if (CONTROL_ROT_LEFT & held)
+                {
+                    if (aim_pos > -aim_poslimit)
+                    {
+                        aim_pos --;
+                        aim_move();
+                    }
+                }
+                else if (CONTROL_ROT_RIGHT & held)
+                {
+                    if (aim_pos < aim_poslimit)
+                    {
+                        aim_pos ++;
+                        aim_move();
+                    }
+                }
             }    
-            else if (CONTROL_ROT_LEFT & held)
-            {
-                if (aim_pos > -aim_poslimit)
-                {
-                    aim_pos --;
-                    aim_move();
-                }
-            }
-            else if (CONTROL_ROT_RIGHT & held)
-            {
-                if (aim_pos < aim_poslimit)
-                {
-                    aim_pos ++;
-                    aim_move();
-                }
-            }
             else if (CONTROL_BACK & pressed)
             {
                 control_back_count ++;
