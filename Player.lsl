@@ -42,7 +42,15 @@ vector arrow_startpos;
 vector arrow_pos;
 float arrow_poslimit;
 rotation arrow_rot;
-integer arrow_rotoffset = 90;
+integer arrow_rotoffset = 180;
+
+//mode indicator settings
+integer mode_link;
+integer mode_face = 0;
+string mode_desc = "mode";
+key mode_rottexture = "a1571152-0a05-2fc4-763b-505b806f1307";
+key mode_movetexture = "faf75693-c4c2-911d-8bc7-c3a07cdce016";
+
 
 //scoreboard settings
 integer scoreboard_link;
@@ -92,20 +100,20 @@ aim_move()
     arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)-arrow_rotoffset>*DEG_TO_RAD);
     arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
+    llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, arrow_pos]);
 }
 
-aim_modechange()
+mode_change()
 {
-    if (aim_mode = 1)
+    if (aim_mode == 1)
     {
-        llSetLinkAlpha(arrow_link, 1.0, 1);
-        llSetLinkAlpha(arrow_link, 0.0, 2);
+        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
     }
-    if (aim_mode = 2)
+    if (aim_mode == 2)
     {
-        llSetLinkAlpha(arrow_link, 0.0, 1);
-        llSetLinkAlpha(arrow_link, 1.0, 2);    
+        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
     }
+    llOwnerSay("mode= " + (string)aim_mode);
 }
 
 scoreboard()
@@ -202,7 +210,10 @@ default
 
         arrow_link = Desc2LinkNum(arrow_desc);
         scoreboard_link = Desc2LinkNum(scoreboard_desc);
-        
+        mode_link = Desc2LinkNum(mode_desc);
+        llOwnerSay("arrow = " + (string)arrow_link + "mode = " + (string)mode_link + "scoreboard = " + (string)scoreboard_link);
+
+        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 0.0]);
         llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);      
     }
     run_time_permissions(integer perm)
@@ -210,7 +221,7 @@ default
         if (perm & PERMISSION_DEBIT)
         {
             state pay;
-        }    
+        }
     }
 }
 
@@ -231,7 +242,6 @@ state pay
         {
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
             llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);   
-            initializer();
             player = id;
             state play;
         }
@@ -255,19 +265,11 @@ state play
             base_scale = llGetScale();
             arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
             aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
-<<<<<<< HEAD
             llOwnerSay((string)base_scale.x + " " + (string)arrow_scale.x);
             llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 0, 0>, 1.0]);
-            aim_modechange();
-        }    
-    }
-    link_message(integer sender_num, integer num, string str, key id)
-    {
-        if (str == "quit")
-        {
-            state gameover;
-            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, 180>*DEG_TO_RAD)), PRIM_TEXTURE,  ALL_SIDES, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, ALL_SIDES, < 1, 1, 1>, 1.0]);
-            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);  
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>]);
+
+            mode_change();
         }    
     }
     control(key id, integer held, integer pressed)
@@ -279,41 +281,25 @@ state play
 
         if (CONTROL_FWD & pressed)
         {
-            control_fwd_count ++;
-            if (control_fwd_count >= 2)
+            control_fwd_count ++; //triggers twice for one press and lift
+            if (control_fwd_count % 2)
             {
-                aim_mode ++;
-                if (aim_mode > 2)
+                if (aim_mode == 1)
                 {
-                    aim_mode = 1;
+                    aim_mode ++;
+                    mode_change();
                 }
-                aim_modechange();
-                control_fwd_count = 0;
+                else 
+                {
+                    aim_mode --;
+                    mode_change();
+                }
             }
         }
         
         if (ball_count < ball_limit)
         {
-            if (aim_mode == 2)
-            {
-                if (CONTROL_ROT_LEFT & held)
-                {
-                    if (aim_rot < aim_rotlimit)
-                    {
-                        aim_rot ++;
-                        aim_move();
-                    }
-                }    
-                else if (CONTROL_ROT_RIGHT & held)
-                {
-                    if (aim_rot > -aim_rotlimit)
-                    {
-                        aim_rot --;
-                        aim_move();
-                    }
-                }
-            }
-            else if (aim_mode == 1)
+            if (aim_mode == 1)
             {
                 if (CONTROL_ROT_LEFT & held)
                 {
@@ -328,6 +314,25 @@ state play
                     if (aim_pos < aim_poslimit)
                     {
                         aim_pos ++;
+                        aim_move();
+                    }
+                }
+            }
+            else if (aim_mode == 2)
+            {
+                if (CONTROL_ROT_LEFT & held)
+                {
+                    if (aim_rot < aim_rotlimit)
+                    {
+                        aim_rot ++;
+                        aim_move();
+                    }
+                }    
+                else if (CONTROL_ROT_RIGHT & held)
+                {
+                    if (aim_rot > -aim_rotlimit)
+                    {
+                        aim_rot --;
                         aim_move();
                     }
                 }
@@ -362,6 +367,12 @@ state play
                 state gameover;
             }
         }
+        if (str == "quit")
+        {
+            state gameover;
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, 180>*DEG_TO_RAD)), PRIM_TEXTURE,  ALL_SIDES, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, ALL_SIDES, < 1, 1, 1>, 1.0]);
+            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);  
+        }   
     }
     timer()
     {
