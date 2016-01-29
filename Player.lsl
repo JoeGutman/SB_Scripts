@@ -414,7 +414,7 @@ state play
                 state gameover;
             }
         }
-        if (str == "quit")
+        if (str == "quit" && id == player)
         {
             state gameover;
         }   
