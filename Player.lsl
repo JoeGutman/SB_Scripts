@@ -100,6 +100,8 @@ settings_reset()
 ball_roll()
 {
     ball_count ++;
+    timer_speed = 1;
+    llSetTimerEvent(timer_speed);
     if (ball_count <= ball_limit)
     {
         arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
@@ -110,12 +112,12 @@ ball_roll()
 
         llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
         ball_speed = 0;
-        llSetTimerEvent(timer_speed);
     }
     if (ball_count >= ball_limit)
     {
         current_time = timer_count;
     }
+    llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
 }
 
 aim_move()
@@ -302,6 +304,7 @@ state play
     state_entry()
     {
         llRequestPermissions(player, PERMISSION_TAKE_CONTROLS);
+        timer_speed = 1;
         llSetTimerEvent(timer_speed);
     }
     run_time_permissions(integer perm)
@@ -386,6 +389,8 @@ state play
                 if (control_back_count <= 1)
                 {
                     ball_speedflip = 1;
+                    timer_speed = ball_timerspeed;
+                    llSetTimerEvent(timer_speed);
                 }
                 else
                 {
@@ -393,7 +398,6 @@ state play
                     ball_speedflip = 0;
                     ball_roll();
                 }
-                llSetTimerEvent(ball_timerspeed);
             }
         }    
     }
@@ -418,6 +422,7 @@ state play
     timer()
     {
         timer_count += timer_speed;
+        llOwnerSay((string)timer_count);
         if (timer_count/timeout >= 1)
         {
             state gameover;
