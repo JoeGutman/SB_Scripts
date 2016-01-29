@@ -422,7 +422,6 @@ state play
     timer()
     {
         timer_count += timer_speed;
-        llOwnerSay((string)timer_count);
         if (timer_count/timeout >= 1)
         {
             state gameover;
