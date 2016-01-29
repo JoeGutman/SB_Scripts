@@ -80,7 +80,6 @@ initializer()
 
 ball_roll()
 {
-    //llOwnerSay((string)ball_speed);
     ball_count ++;
     if (ball_count <= ball_limit)
     {
@@ -126,7 +125,6 @@ aim_move()
     {
         llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, guide_maxlength, guide_scale.z>]);     
     }
-    llOwnerSay((string)distance);
 
     if (aim_pos <= -aim_poslimit)
     {
@@ -153,7 +151,6 @@ mode_change()
     {
         llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
     }
-    llOwnerSay("mode= " + (string)aim_mode);
 }
 
 scoreboard()
@@ -404,7 +401,6 @@ state play
         if (index != -1)
         {
             player_score += (integer)llGetSubString(string_test, 6, -1);
-            //llOwnerSay((string)player_score);
             scoreboard();
             if (ball_count >= ball_limit)
             {
