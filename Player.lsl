@@ -64,6 +64,7 @@ list scoreboard_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63
 integer guide_link;
 string guide_desc = "guide";
 vector guide_scale;
+integer guide_maxlength = 5;
 
 initializer()
 {
@@ -108,6 +109,38 @@ aim_move()
     arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
     llSetLinkPrimitiveParamsFast(guide_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
     llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, arrow_pos]);
+
+    vector ray_startmodifier = <0,0,.05>;
+    vector ray_endmodifier = <0, 2.5,.05>;
+
+    list results = llCastRay(arrow_pos + llGetPos() + ray_startmodifier, arrow_pos + llGetPos() + ray_endmodifier * (llGetRot()*arrow_rot) ,[RC_REJECT_TYPES,RC_REJECT_PHYSICAL,RC_DETECT_PHANTOM,TRUE,RC_MAX_HITS,1]);
+    key target_uuid = (key)llList2String(results,0);
+    vector target_pos = (vector)llList2String(results,1);
+
+    float distance = llVecDist(arrow_pos + llGetPos() + ray_startmodifier, target_pos);
+    if (distance < guide_maxlength)
+    {
+        llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, distance*2, guide_scale.z>]);    
+    }
+    else
+    {
+        llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, guide_maxlength, guide_scale.z>]);     
+    }
+    llOwnerSay((string)distance);
+
+    if (aim_pos <= -aim_poslimit)
+    {
+        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE_BOX, PRIM_HOLE_DEFAULT, <.125, .625, 0>, 0.0, <0,0,0>,<0,0,0>,<0,0,0>]);  
+    }
+    else if (aim_pos >= aim_poslimit)
+    {
+        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE_BOX, PRIM_HOLE_DEFAULT, <.625, 0, 0>, 0.0, <0,0,0>,<0,0,0>,<0,0,0>]);  
+    }
+    else
+    {
+        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE_BOX, PRIM_HOLE_DEFAULT, <0, 0, 0>, 0.0, <0,0,0>,<0,0,0>,<0,0,0>]);          
+    }
+
 }
 
 mode_change()
