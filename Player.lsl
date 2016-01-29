@@ -12,12 +12,6 @@ list player_names;
 
 //aim settings
 integer aim_mode = 1; // aim_mode 0 = Move Left/Right; aim_mode 3 = Rot Left/Right
-integer aim_rot = 0;
-integer aim_rotincrement = 1;
-integer aim_rotlimit = 20; //in degrees
-float aim_pos = 0;
-float aim_posincrement = .05;
-float aim_poslimit; // based off of arrow size and lane size
 
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
@@ -39,10 +33,15 @@ string arrow_desc = "arrow";
 key arrow_texture = NULL_KEY;
 vector arrow_scale;
 vector arrow_startpos;
+float arrow_xpos = 0;
+float arrow_posincrement = .05;
+float arrow_poslimit; // based off of arrow size and lane size
 vector arrow_pos;
-float arrow_poslimit;
 rotation arrow_rot;
 integer arrow_rotoffset = 180;
+integer arrow_zrot = 0;
+integer arrow_rotincrement = 1;
+integer arrow_rotlimit = 20; //in degrees
 
 //mode indicator settings
 integer mode_link;
@@ -60,11 +59,17 @@ integer scoreboard_flashlimit = 6; //2 for each flash cycle
 string scoreboard_desc = "scoreboard";
 list scoreboard_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69d8-f048-d24d3bbd58ac","92e5fe83-cea4-6bfd-c32c-21ee32a15b90","7ab4ca65-528f-aeab-f7c4-de7e9dd0cd48","11dceab3-9121-d9ac-8741-34ccaa509f0d","d9d87ec3-7379-c859-e663-d7641736df08","5ae3f95c-91e8-9683-2666-7b2ae1ebd9b0","c3d04bb9-2a91-6857-944a-8a73caaf1f42","6df27617-a5f8-8f14-f196-490089ba8955","4196499f-7554-16ea-d545-2bad00f2f045","ae8f016c-8ccc-b1d0-3a6a-213d1ba8e13a"];
 
+//ball path guide
+integer guide_link;
+string guide_desc = "guide";
+vector guide_scale;
+vector guide_limitoffset;
+
 
 initializer()
 {
-    aim_rot = 0;
-    aim_pos = 0;
+    arrow_zrot = 0;
+    arrow_xpos = 0;
     player_score = 0;
     ball_count = 0;
     ball_speed = 0;
@@ -79,8 +84,8 @@ ball_roll()
     ball_count ++;
     if (ball_count <= ball_limit)
     {
-        arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
-        arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
+        arrow_rot = llEuler2Rot(<0,0,(arrow_zrot*arrow_rotincrement)>*DEG_TO_RAD);
+        arrow_pos = < (arrow_xpos + arrow_posincrement), arrow_startpos.y, arrow_startpos.z>;
 
         vector velocity = (ball_mass * ball_speed * ball_direction)*(llGetRot()*arrow_rot);
         vector position = ((arrow_pos + llGetPos()) + ball_rezpos);
@@ -97,9 +102,12 @@ ball_roll()
 aim_move()
 {
     arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
-    arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)-arrow_rotoffset>*DEG_TO_RAD);
-    arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
+    arrow_rot = llEuler2Rot(<0,0,(arrow_zrot*arrow_rotincrement)-arrow_rotoffset>*DEG_TO_RAD);
+    arrow_pos = < (arrow_xpos +arrow_posincrement), arrow_startpos.y, arrow_startpos.z>;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
+
+    arrow_rot = llEuler2Rot(<0,0,(arrow_zrot*arrow_rotincrement)>*DEG_TO_RAD);
+    llSetLinkPrimitiveParamsFast(guide_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
     llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, arrow_pos]);
 }
 
@@ -211,6 +219,7 @@ default
         arrow_link = Desc2LinkNum(arrow_desc);
         scoreboard_link = Desc2LinkNum(scoreboard_desc);
         mode_link = Desc2LinkNum(mode_desc);
+        guide_link = Desc2LinkNum(guide_desc);
         llOwnerSay("arrow = " + (string)arrow_link + "mode = " + (string)mode_link + "scoreboard = " + (string)scoreboard_link);
 
         llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 0.0]);
@@ -262,11 +271,15 @@ state play
             llTakeControls(CONTROL_FWD | CONTROL_BACK | CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT, TRUE, FALSE);                
 
             arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
-            base_scale = llGetScale();
+            base_scale = llList2Vector(llGetLinkPrimitiveParams(LINK_ROOT, [PRIM_SIZE]), 0);
             arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
-            aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
+            guide_scale = llList2Vector(llGetLinkPrimitiveParams(guide_link, [PRIM_SIZE]), 0);
+            arrow_poslimit = ((base_scale.x - arrow_scale.x)/2);
+            llOwnerSay((string)arrow_poslimit);
+            guide_limitoffset = < 0, guide_scale.x/2, 0>; 
             llOwnerSay((string)base_scale.x + " " + (string)arrow_scale.x);
             llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <.5, 0, 0>, <.5, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 0, 0>, 1.0]);
+            llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION]);
             llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>]);
 
             mode_change();
@@ -303,17 +316,17 @@ state play
             {
                 if (CONTROL_ROT_LEFT & held)
                 {
-                    if (aim_pos > -aim_poslimit)
+                    if (arrow_xpos > -arrow_poslimit)
                     {
-                        aim_pos --;
+                        arrow_xpos --;
                         aim_move();
                     }
                 }
                 else if (CONTROL_ROT_RIGHT & held)
                 {
-                    if (aim_pos < aim_poslimit)
+                    if (arrow_xpos < arrow_poslimit)
                     {
-                        aim_pos ++;
+                        arrow_xpos ++;
                         aim_move();
                     }
                 }
@@ -322,17 +335,17 @@ state play
             {
                 if (CONTROL_ROT_LEFT & held)
                 {
-                    if (aim_rot < aim_rotlimit)
+                    if (arrow_zrot < arrow_rotlimit)
                     {
-                        aim_rot ++;
+                        arrow_zrot ++;
                         aim_move();
                     }
                 }    
                 else if (CONTROL_ROT_RIGHT & held)
                 {
-                    if (aim_rot > -aim_rotlimit)
+                    if (arrow_zrot > -arrow_rotlimit)
                     {
-                        aim_rot --;
+                        arrow_zrot --;
                         aim_move();
                     }
                 }
