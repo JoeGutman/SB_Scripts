@@ -23,7 +23,7 @@ float aim_poslimit; // based off of arrow size and lane size
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
 integer ball_count = 0; // Amount of balls that have been rolled.
-integer ball_limit = 1; // Max amount of balls that can be rolled.
+integer ball_limit = 9; // Max amount of balls that can be rolled.
 integer ball_life = 10; // parameter that will be passed to ball to tell ball how long to stay rezzed, in seconds.
 integer ball_speed = 0; 
 integer ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
@@ -33,7 +33,7 @@ integer control_back_count = 0;
 integer control_fwd_count = 0;
 vector ball_rezpos = < 0, 0, .1>; // The distance to adjust the ball rez position from the aim arrow. 
 vector ball_direction = <0.0,1.0,0.0>; // apply velocity in x, y, or z heading.
-float ball_timerspeed;
+float ball_timerspeed = .05;
 
 //arrow prim settings
 integer arrow_link;
