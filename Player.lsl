@@ -191,7 +191,6 @@ highscore()
             {
                 i++;
             }
-            //llOwnerSay((string)llGetFreeMemory( ));
         }
     }
     else if (list_length == 1)
@@ -220,8 +219,6 @@ highscore()
         player_highscores = llDeleteSubList(player_highscores, highscoreboard_length, -1);
         player_names = llDeleteSubList(player_names, highscoreboard_length, -1);
     }
-    //llOwnerSay(llList2CSV(player_highscores));
-    //llOwnerSay(llList2CSV(player_names));
 }
 
 timeout_set()
@@ -249,7 +246,6 @@ default
         scoreboard_link = Desc2LinkNum(scoreboard_desc);
         mode_link = Desc2LinkNum(mode_desc);
         guide_link = Desc2LinkNum(guide_desc);
-        llOwnerSay("arrow = " + (string)arrow_link + "mode = " + (string)mode_link + "scoreboard = " + (string)scoreboard_link);
 
         llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 0.0]);
         llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);      
