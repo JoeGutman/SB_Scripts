@@ -22,8 +22,6 @@ float aim_poslimit; // based off of arrow size and lane size
 
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
-integer ball_count = 0; // Amount of balls that have been rolled.
-integer ball_limit = 9; // Max amount of balls that can be rolled.
 integer ball_life = 10; // parameter that will be passed to ball to tell ball how long to stay rezzed, in seconds.
 integer ball_speed = 0; 
 integer ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
@@ -61,7 +59,7 @@ integer highscoreboard_length = 10; //How many players/scores can be in the high
 integer scoreboard_flash = 0;
 integer scoreboard_flashlimit = 6; //2 for each flash cycle
 string scoreboard_desc = "scoreboard";
-list scoreboard_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69d8-f048-d24d3bbd58ac","92e5fe83-cea4-6bfd-c32c-21ee32a15b90","7ab4ca65-528f-aeab-f7c4-de7e9dd0cd48","11dceab3-9121-d9ac-8741-34ccaa509f0d","d9d87ec3-7379-c859-e663-d7641736df08","5ae3f95c-91e8-9683-2666-7b2ae1ebd9b0","c3d04bb9-2a91-6857-944a-8a73caaf1f42","6df27617-a5f8-8f14-f196-490089ba8955","4196499f-7554-16ea-d545-2bad00f2f045","ae8f016c-8ccc-b1d0-3a6a-213d1ba8e13a"];
+list digital_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69d8-f048-d24d3bbd58ac","92e5fe83-cea4-6bfd-c32c-21ee32a15b90","7ab4ca65-528f-aeab-f7c4-de7e9dd0cd48","11dceab3-9121-d9ac-8741-34ccaa509f0d","d9d87ec3-7379-c859-e663-d7641736df08","5ae3f95c-91e8-9683-2666-7b2ae1ebd9b0","c3d04bb9-2a91-6857-944a-8a73caaf1f42","6df27617-a5f8-8f14-f196-490089ba8955","4196499f-7554-16ea-d545-2bad00f2f045","ae8f016c-8ccc-b1d0-3a6a-213d1ba8e13a"];
 
 //ball path guide
 integer guide_link;
@@ -69,12 +67,18 @@ string guide_desc = "guide";
 vector guide_scale;
 integer guide_maxlength = 5;
 
+//ball count settings
+integer ballcount_link;
+integer ballcount = 0; // Amount of balls that have been rolled.
+integer ballcount_limit = 9; // Max amount of balls that can be rolled.
+string ballcount_desc = "ballcount_bonus";
+
 settings_reset()
 {
     aim_rot = 0;
     aim_pos = 0;
     player_score = 0;
-    ball_count = 0;
+    ballcount = 0;
     ball_speed = 0;
     timer_count = 0;
     ball_speedflip = 0;
@@ -99,21 +103,22 @@ settings_reset()
 
 ball_roll()
 {
-    ball_count ++;
+    ballcount ++;
+    ballcount_set();
     timer_speed = 1;
     llSetTimerEvent(timer_speed);
-    if (ball_count <= ball_limit)
+    if (ballcount <= ballcount_limit)
     {
         arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
         arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
 
         vector velocity = (ball_mass * ball_speed * ball_direction)*(llGetRot()*arrow_rot);
-        vector position = ((arrow_pos + llGetPos()) + ball_rezpos);
+        vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
 
         llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
         ball_speed = 0;
     }
-    if (ball_count >= ball_limit)
+    if (ballcount >= ballcount_limit)
     {
         current_time = timer_count;
     }
@@ -131,14 +136,16 @@ aim_move()
     llSetLinkPrimitiveParamsFast(guide_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
     llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, arrow_pos]);
 
-    vector ray_startmodifier = <0,0,.05>;
-    vector ray_endmodifier = <0, 2.5,.05>;
+    vector ray_start = llGetPos() + ((arrow_pos + < 0, 0, .05>) * llGetRot()); //arrows adjusted position based on root rotation.
+    vector ray_end = ray_start + (< 0, 2.5, .05>*(arrow_rot*llGetRot()));
 
-    list results = llCastRay(arrow_pos + llGetPos() + ray_startmodifier, arrow_pos + llGetPos() + ray_endmodifier * (llGetRot()*arrow_rot) ,[RC_REJECT_TYPES,RC_REJECT_PHYSICAL,RC_DETECT_PHANTOM,TRUE,RC_MAX_HITS,1]);
+    //llRezObject("ray_indicator", ray_start, ZERO_VECTOR, ZERO_ROTATION, 0);
+    //llRezObject("ray_indicator", ray_end, ZERO_VECTOR, ZERO_ROTATION, 0);
+    list results = llCastRay(ray_start, ray_end,[RC_REJECT_TYPES,RC_REJECT_PHYSICAL,RC_DETECT_PHANTOM,TRUE,RC_MAX_HITS,1]);
     key target_uuid = (key)llList2String(results,0);
     vector target_pos = (vector)llList2String(results,1);
 
-    float distance = llVecDist(arrow_pos + llGetPos() + ray_startmodifier, target_pos);
+    float distance = llVecDist(ray_start, target_pos);
     if (distance < guide_maxlength)
     {
         llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, distance*2, guide_scale.z>]);    
@@ -174,20 +181,25 @@ mode_change()
     }
 }
 
-scoreboard()
+scoreboard_set()
 {
     integer i = llStringLength((string)player_score);
     integer faces = llGetLinkNumberOfSides(scoreboard_link);
     while (i > 0)
     {
         integer subscore = (integer)llGetSubString((string)player_score, i-1, i-1);
-        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, faces-1, llList2Key(scoreboard_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, faces-1, llList2Key (digital_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
         faces --;
         i --;
     }
 }
 
-highscore()
+ballcount_set()
+{
+    llSetLinkPrimitiveParamsFast(ballcount_link, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ballcount+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);    
+}
+
+highscore_set()
 {
 
     integer i = 0;
@@ -262,8 +274,9 @@ default
         scoreboard_link = Desc2LinkNum(scoreboard_desc);
         mode_link = Desc2LinkNum(mode_desc);
         guide_link = Desc2LinkNum(guide_desc);
+        ballcount_link = Desc2LinkNum(ballcount_desc);
 
-        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
+        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
         settings_reset();      
     }
     run_time_permissions(integer perm)
@@ -292,7 +305,7 @@ state pay
         else if (amount == price)    
         {
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
-            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key(scoreboard_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);   
+            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);   
             player = id;
             state play;
         }
@@ -315,6 +328,8 @@ state play
             llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(mode_link, 1.0, 0);
+            scoreboard_set();
+            ballcount_set();
         }    
     }
     control(key id, integer held, integer pressed)
@@ -342,7 +357,7 @@ state play
             }
         }
         
-        if (ball_count < ball_limit)
+        if (ballcount < ballcount_limit)
         {
             if (aim_mode == 1)
             {
@@ -408,8 +423,9 @@ state play
         if (index != -1)
         {
             player_score += (integer)llGetSubString(string_test, 6, -1);
-            scoreboard();
-            if (ball_count >= ball_limit)
+            scoreboard_set();
+            ballcount_set();
+            if (ballcount >= ballcount_limit)
             {
                 state gameover;
             }
@@ -448,7 +464,7 @@ state play
             //llOwnerSay((string)ball_speed);
         }
 
-        if (timer_count - current_time >= ball_life && ball_count >= ball_limit)
+        if (timer_count - current_time >= ball_life && ballcount >= ballcount_limit)
         {
             state gameover;
         }
@@ -478,7 +494,7 @@ state gameover
         }
         else
         {
-            highscore();
+            highscore_set();
             settings_reset();
             state pay;
         }
