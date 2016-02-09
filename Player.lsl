@@ -96,7 +96,7 @@ settings_reset()
     
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
     llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
-    llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);  
+    llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
 
     llSetLinkAlpha(arrow_link, 0.0, ALL_SIDES);
     llSetLinkAlpha(guide_link, 0.0, ALL_SIDES);
@@ -205,6 +205,12 @@ scoreboard_set()
     }
 }
 
+scoreboard_clear()
+{
+    llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
+    llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+}
+
 ball_countset()
 {
     llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ball_count+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);    
@@ -287,8 +293,7 @@ default
         guide_link = Desc2LinkNum(guide_desc);
         ball_countlink = Desc2LinkNum(ball_countdesc);
 
-        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
-        llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);   
+        scoreboard_clear();
         settings_reset();      
     }
     run_time_permissions(integer perm)
@@ -316,7 +321,6 @@ state pay
         else if (amount == price)    
         {
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
-            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);   
             player = id;
             state play;
         }
@@ -340,6 +344,7 @@ state play
             llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(mode_link, 1.0, 0);
+            scoreboard_clear();
             scoreboard_set();
             ball_countset();
         }   
@@ -442,7 +447,7 @@ state play
             scoreboard_set();
 
             ball_count ++;
-            llOwnerSay((string)ball_count);
+            //llOwnerSay((string)ball_count);
             ball_countset();
             if (ball_count >= ball_countlimit)
             {
