@@ -305,7 +305,6 @@ state pay
     state_entry()
     {
         llSetPayPrice(price, [price, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
-        settings_reset();
     }
     money(key id, integer amount)
     {
@@ -336,13 +335,18 @@ state play
     {
         if (perm & PERMISSION_TAKE_CONTROLS)
         {
+            settings_reset();
             llTakeControls(CONTROL_FWD | CONTROL_BACK | CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT, TRUE, FALSE);
             llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(mode_link, 1.0, 0);
             scoreboard_set();
             ball_countset();
-        }    
+        }   
+        else
+        {
+            state pay;     
+        } 
     }
     control(key id, integer held, integer pressed)
     {
