@@ -51,6 +51,10 @@ integer mode_face = 0;
 string mode_desc = "mode";
 key mode_rottexture = "a1571152-0a05-2fc4-763b-505b806f1307";
 key mode_movetexture = "faf75693-c4c2-911d-8bc7-c3a07cdce016";
+key mode_rottextureleft = "a1571152-0a05-2fc4-763b-505b806f1307";
+key mode_movetextureleft = "faf75693-c4c2-911d-8bc7-c3a07cdce016";
+key mode_rottextureright = "a1571152-0a05-2fc4-763b-505b806f1307";
+key mode_movetextureright = "faf75693-c4c2-911d-8bc7-c3a07cdce016";
 
 
 //scoreboard settings
@@ -154,30 +158,39 @@ aim_move()
     {
         llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, guide_maxlength, guide_scale.z>]);     
     }
-
-    if (aim_pos <= -aim_poslimit)
-    {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE, PRIM_TYPE_BOX, 0, <.125, .625, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);  
-    }
-    else if (aim_pos >= aim_poslimit)
-    {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, .625, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);  
-    }
-    else
-    {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);          
-    }
 }
 
 mode_change()
 {
     if (aim_mode == 1)
     {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
+        if (aim_pos <= -aim_poslimit)
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetextureright, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
+        }
+        else if (aim_pos >= aim_poslimit)
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetextureleft, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
+        }
+        else
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);          
+        }
     }
     if (aim_mode == 2)
     {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
+        if (aim_pos <= -aim_poslimit)
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottextureright, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
+        }
+        else if (aim_pos >= aim_poslimit)
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottextureleft, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
+        }
+        else
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);          
+        }
     }
 }
 
