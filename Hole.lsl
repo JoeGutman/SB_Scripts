@@ -7,10 +7,10 @@ integer Key2Chan(key ID)
 
 default
 {
-	collision(integer num_detected)
+	collision_start(integer num_detected)
 	{
 		message_channel = Key2Chan(llDetectedKey(0));
 		llSay(message_channel, "die");
-		llMessageLinked(LINK_ROOT, 0, "score=" + llGetObjectDesc(), NULL_KEY)			
+		llMessageLinked(LINK_ROOT, 0, "score=" + llGetObjectDesc(), NULL_KEY);
 	}
 }
