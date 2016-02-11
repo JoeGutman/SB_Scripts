@@ -23,15 +23,16 @@ float aim_poslimit; // based off of arrow size and lane size
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
 integer ball_life = 10; // parameter that will be passed to ball to tell ball how long to stay rezzed, in seconds.
-integer ball_speed = 0; 
-integer ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
-integer ball_speedlimit = 20;
+float ball_speed = 0; 
+float ball_speedincrement;
+float ball_speedlimit = 12;
+float ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
 float ball_mass = 1.25;
 integer control_back_count = 0;
 integer control_fwd_count = 0;
 vector ball_rezpos = < 0, 0, .1>; // The distance to adjust the ball rez position from the aim arrow. 
 vector ball_direction = <0.0,1.0,0.0>; // apply velocity in x, y, or z heading.
-float ball_timerspeed = .05;
+float ball_timerspeed = .01;
 
 //arrow prim settings
 integer arrow_link;
@@ -469,7 +470,7 @@ state play
 
         if(ball_speedflip == 1)
         {
-            ball_speed ++;
+            ball_speed += ball_speedincrement;
             llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, arrow_textincrement * ball_speed, 0>, 0.0]);
             if (ball_speed >= ball_speedlimit)
             {
