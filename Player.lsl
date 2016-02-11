@@ -51,6 +51,10 @@ integer mode_face = 0;
 string mode_desc = "mode";
 key mode_rottexture = "a1571152-0a05-2fc4-763b-505b806f1307";
 key mode_movetexture = "faf75693-c4c2-911d-8bc7-c3a07cdce016";
+key mode_rottextureleft = "a1571152-0a05-2fc4-763b-505b806f1307";
+key mode_movetextureleft = "faf75693-c4c2-911d-8bc7-c3a07cdce016";
+key mode_rottextureright = "a1571152-0a05-2fc4-763b-505b806f1307";
+key mode_movetextureright = "faf75693-c4c2-911d-8bc7-c3a07cdce016";
 
 
 //scoreboard settings
@@ -68,17 +72,17 @@ vector guide_scale;
 integer guide_maxlength = 5;
 
 //ball count settings
-integer ballcount_link;
-integer ballcount = 0; // Amount of balls that have been rolled.
-integer ballcount_limit = 9; // Max amount of balls that can be rolled.
-string ballcount_desc = "ballcount_bonus";
+integer ball_countlink;
+integer ball_count = 0; // Amount of balls that have been rolled.
+integer ball_countlimit = 9; // Max amount of balls that can be rolled.
+string ball_countdesc = "ball_count";
 
 settings_reset()
 {
     aim_rot = 0;
     aim_pos = 0;
     player_score = 0;
-    ballcount = 0;
+    ball_count = 0;
     ball_speed = 0;
     timer_count = 0;
     ball_speedflip = 0;
@@ -92,7 +96,7 @@ settings_reset()
     
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
     llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
-    llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]); 
+    llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
 
     llSetLinkAlpha(arrow_link, 0.0, ALL_SIDES);
     llSetLinkAlpha(guide_link, 0.0, ALL_SIDES);
@@ -103,11 +107,9 @@ settings_reset()
 
 ball_roll()
 {
-    ballcount ++;
-    ballcount_set();
     timer_speed = 1;
     llSetTimerEvent(timer_speed);
-    if (ballcount <= ballcount_limit)
+    if (ball_count <= ball_countlimit)
     {
         arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
         arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
@@ -118,7 +120,7 @@ ball_roll()
         llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
         ball_speed = 0;
     }
-    if (ballcount >= ballcount_limit)
+    if (ball_count >= ball_countlimit)
     {
         current_time = timer_count;
     }
@@ -154,30 +156,39 @@ aim_move()
     {
         llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, guide_maxlength, guide_scale.z>]);     
     }
-
-    if (aim_pos <= -aim_poslimit)
-    {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE, PRIM_TYPE_BOX, 0, <.125, .625, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);  
-    }
-    else if (aim_pos >= aim_poslimit)
-    {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, .625, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);  
-    }
-    else
-    {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);          
-    }
 }
 
 mode_change()
 {
     if (aim_mode == 1)
     {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
+        if (aim_pos <= -aim_poslimit)
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetextureright, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
+        }
+        else if (aim_pos >= aim_poslimit)
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetextureleft, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
+        }
+        else
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);          
+        }
     }
     if (aim_mode == 2)
     {
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
+        if (aim_pos <= -aim_poslimit)
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottextureright, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
+        }
+        else if (aim_pos >= aim_poslimit)
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottextureleft, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
+        }
+        else
+        {
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);          
+        }
     }
 }
 
@@ -194,9 +205,15 @@ scoreboard_set()
     }
 }
 
-ballcount_set()
+scoreboard_clear()
 {
-    llSetLinkPrimitiveParamsFast(ballcount_link, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ballcount+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);    
+    llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
+    llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+}
+
+ball_countset()
+{
+    llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ball_count+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);    
 }
 
 highscore_set()
@@ -274,9 +291,9 @@ default
         scoreboard_link = Desc2LinkNum(scoreboard_desc);
         mode_link = Desc2LinkNum(mode_desc);
         guide_link = Desc2LinkNum(guide_desc);
-        ballcount_link = Desc2LinkNum(ballcount_desc);
+        ball_countlink = Desc2LinkNum(ball_countdesc);
 
-        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
+        scoreboard_clear();
         settings_reset();      
     }
     run_time_permissions(integer perm)
@@ -293,7 +310,6 @@ state pay
     state_entry()
     {
         llSetPayPrice(price, [price, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
-        settings_reset();
     }
     money(key id, integer amount)
     {
@@ -305,7 +321,6 @@ state pay
         else if (amount == price)    
         {
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
-            llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);   
             player = id;
             state play;
         }
@@ -324,13 +339,19 @@ state play
     {
         if (perm & PERMISSION_TAKE_CONTROLS)
         {
+            settings_reset();
             llTakeControls(CONTROL_FWD | CONTROL_BACK | CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT, TRUE, FALSE);
             llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(mode_link, 1.0, 0);
+            scoreboard_clear();
             scoreboard_set();
-            ballcount_set();
-        }    
+            ball_countset();
+        }   
+        else
+        {
+            state pay;     
+        } 
     }
     control(key id, integer held, integer pressed)
     {
@@ -357,7 +378,7 @@ state play
             }
         }
         
-        if (ballcount < ballcount_limit)
+        if (ball_count < ball_countlimit)
         {
             if (aim_mode == 1)
             {
@@ -424,8 +445,11 @@ state play
         {
             player_score += (integer)llGetSubString(string_test, 6, -1);
             scoreboard_set();
-            ballcount_set();
-            if (ballcount >= ballcount_limit)
+
+            ball_count ++;
+            //llOwnerSay((string)ball_count);
+            ball_countset();
+            if (ball_count >= ball_countlimit)
             {
                 state gameover;
             }
@@ -464,7 +488,7 @@ state play
             //llOwnerSay((string)ball_speed);
         }
 
-        if (timer_count - current_time >= ball_life && ballcount >= ballcount_limit)
+        if (timer_count - current_time >= ball_life && ball_count >= ball_countlimit)
         {
             state gameover;
         }
