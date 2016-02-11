@@ -1,4 +1,5 @@
 integer message_channel;
+key object;
 
 integer Key2Chan(key ID) 
 {
@@ -9,8 +10,16 @@ default
 {
 	collision(integer num_detected)
 	{
-		message_channel = Key2Chan(llDetectedKey(0));
-		llSay(message_channel, "die");
-		llMessageLinked(LINK_ROOT, 0, "score=" + llGetObjectDesc(), NULL_KEY)			
+		if (object == llDetectedKey(0))
+		{
+			llSay(message_channel, "die");
+		}
+		else
+		{
+			object = llDetectedKey(0);
+			message_channel = Key2Chan(object);
+			llSay(message_channel, "die");
+			llMessageLinked(LINK_ROOT, 0, "score=" + llGetObjectDesc(), NULL_KEY);
+		}
 	}
 }
