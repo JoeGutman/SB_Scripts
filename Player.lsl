@@ -22,14 +22,15 @@ float aim_poslimit; // based off of arrow size and lane size
 
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
+integer ball_listenhandle;
 integer ball_life = 10; // parameter that will be passed to ball to tell ball how long to stay rezzed, in seconds.
+integer control_back_count = 0;
+integer control_fwd_count = 0;
 float ball_speed = 0; 
-float ball_speedincrement;
+float ball_speedincrement = .25;
 float ball_speedlimit = 12;
 float ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
 float ball_mass = 1.25;
-integer control_back_count = 0;
-integer control_fwd_count = 0;
 vector ball_rezpos = < 0, 0, .1>; // The distance to adjust the ball rez position from the aim arrow. 
 vector ball_direction = <0.0,1.0,0.0>; // apply velocity in x, y, or z heading.
 float ball_timerspeed = .01;
@@ -37,14 +38,15 @@ float ball_timerspeed = .01;
 //arrow prim settings
 integer arrow_link;
 string arrow_desc = "arrow";
-key arrow_texture = "3d94c994-f6e8-fee5-dc46-1f4e9c31ca76";
+key arrow_texture = "663649e6-2b6b-8c6d-e7fc-a4917deaaf97";
 vector arrow_scale;
 vector arrow_startpos;
 vector arrow_pos;
 float arrow_poslimit;
 rotation arrow_rot;
-integer arrow_rotoffset = 180;
+integer arrow_rotoffset = 90;
 float arrow_textincrement;
+float arrow_currenttextpos = 0;
 
 //mode indicator settings
 integer mode_link;
@@ -75,6 +77,7 @@ integer guide_maxlength = 5;
 //ball count settings
 integer ball_countlink;
 integer ball_count = 0; // Amount of balls that have been rolled.
+integer ball_throwncount;
 integer ball_countlimit = 9; // Max amount of balls that can be rolled.
 string ball_countdesc = "ball_count";
 
@@ -84,10 +87,12 @@ settings_reset()
     aim_pos = 0;
     player_score = 0;
     ball_count = 0;
+    ball_throwncount = ball_countlimit;
     ball_speed = 0;
     timer_count = 0;
     ball_speedflip = 0;
     scoreboard_flash = 0;
+    llListenRemove(ball_listenhandle);  
     arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
     base_scale = llGetScale();
     arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
@@ -103,13 +108,24 @@ settings_reset()
     llSetLinkAlpha(guide_link, 0.0, ALL_SIDES);
     llSetLinkAlpha(mode_link, 0.0, 0);
 
-    arrow_textincrement = .5/ball_speedlimit; 
+    arrow_currenttextpos = 0;
+    llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
 }
 
 ball_roll()
 {
+    integer channel = Key2AppChan(llGetKey());
+    ball_listenhandle = llListen(channel, "", NULL_KEY, "");
+
+    ball_throwncount --;
+    llOwnerSay((string)ball_throwncount);
+
     timer_speed = 1;
     llSetTimerEvent(timer_speed);
+
+    arrow_currenttextpos = 0;
+    llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
+
     if (ball_count <= ball_countlimit)
     {
         arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
@@ -125,7 +141,6 @@ ball_roll()
     {
         current_time = timer_count;
     }
-    llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
 }
 
 aim_move()
@@ -281,6 +296,11 @@ integer Desc2LinkNum(string sDesc)
     return -1;
 }
 
+integer Key2AppChan(key ID) 
+{
+    return 0x80000000 | (integer)("0x"+(string)ID);
+}
+
 default
 {
     state_entry()
@@ -341,7 +361,18 @@ state play
         if (perm & PERMISSION_TAKE_CONTROLS)
         {
             settings_reset();
-            llTakeControls(CONTROL_FWD | CONTROL_BACK | CONTROL_ROT_LEFT | CONTROL_ROT_RIGHT, TRUE, FALSE);
+            llTakeControls(
+                            CONTROL_FWD |
+                            CONTROL_BACK |
+                            CONTROL_LEFT |
+                            CONTROL_RIGHT |
+                            CONTROL_ROT_LEFT |
+                            CONTROL_ROT_RIGHT |
+                            CONTROL_UP |
+                            CONTROL_DOWN |
+                            CONTROL_LBUTTON |
+                            CONTROL_ML_LBUTTON ,
+                            TRUE, FALSE);
             llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(mode_link, 1.0, 0);
@@ -379,11 +410,11 @@ state play
             }
         }
         
-        if (ball_count < ball_countlimit)
+        if (ball_count < ball_countlimit && ball_throwncount > 0)
         {
             if (aim_mode == 1)
             {
-                if (CONTROL_ROT_LEFT & held)
+                if (CONTROL_ROT_LEFT & held || CONTROL_LEFT & held)
                 {
                     if (aim_pos > -aim_poslimit)
                     {
@@ -391,7 +422,7 @@ state play
                         aim_move();
                     }
                 }
-                else if (CONTROL_ROT_RIGHT & held)
+                else if (CONTROL_ROT_RIGHT & held || CONTROL_RIGHT & held)
                 {
                     if (aim_pos < aim_poslimit)
                     {
@@ -402,7 +433,7 @@ state play
             }
             else if (aim_mode == 2)
             {
-                if (CONTROL_ROT_LEFT & held)
+                if (CONTROL_ROT_LEFT & held  || CONTROL_LEFT & held)
                 {
                     if (aim_rot < aim_rotlimit)
                     {
@@ -410,7 +441,7 @@ state play
                         aim_move();
                     }
                 }    
-                else if (CONTROL_ROT_RIGHT & held)
+                else if (CONTROL_ROT_RIGHT & held || CONTROL_RIGHT & held)
                 {
                     if (aim_rot > -aim_rotlimit)
                     {
@@ -438,6 +469,19 @@ state play
             }
         }    
     }
+    listen(integer channel, string name, key id, string message)
+    {
+        if (message == "scratch")
+        {
+            ball_throwncount ++;
+            if (ball_throwncount > ball_countlimit)
+            {
+                ball_throwncount = ball_countlimit;
+            }
+            llOwnerSay((string)ball_throwncount);    
+        }
+        llListenRemove(ball_listenhandle);    
+    }
     link_message(integer sender_num, integer num, string str, key id)
     {
         string string_test = str;
@@ -458,7 +502,17 @@ state play
         if (str == "quit" && id == player)
         {
             state gameover;
-        }   
+        }
+        if (str == "scratch")
+        {
+            ball_throwncount ++;
+            if (ball_throwncount > ball_countlimit)
+            {
+                ball_throwncount = ball_countlimit;
+            }
+            llOwnerSay((string)ball_throwncount);
+        } 
+        llListenRemove(ball_listenhandle);    
     }
     timer()
     {
@@ -467,26 +521,28 @@ state play
         {
             state gameover;
         }
-
-        if(ball_speedflip == 1)
+        if ( ball_throwncount > 0)
         {
-            ball_speed += ball_speedincrement;
-            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, arrow_textincrement * ball_speed, 0>, 0.0]);
-            if (ball_speed >= ball_speedlimit)
+            if(ball_speedflip == 1)
             {
-                ball_speedflip = 2;
+                ball_speed += ball_speedincrement;
+                llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos += .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
+                if (ball_speed >= ball_speedlimit)
+                {
+                    ball_speedflip = 2;
+                }
+                //llOwnerSay((string)ball_speed);
             }
-            //llOwnerSay((string)ball_speed);
-        }
-        else if (ball_speedflip == 2)
-        {
-            ball_speed --;
-            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, arrow_textincrement * ball_speed, 0>, 0.0]);
-            if (ball_speed <= 0)
+            else if (ball_speedflip == 2)
             {
-                ball_speedflip = 1;
-            } 
-            //llOwnerSay((string)ball_speed);
+                ball_speed -= ball_speedincrement;
+                llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos -= .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
+                if (ball_speed <= 0)
+                {
+                    ball_speedflip = 1;
+                } 
+                //llOwnerSay((string)ball_speed);
+            }    
         }
 
         if (timer_count - current_time >= ball_life && ball_count >= ball_countlimit)
@@ -501,6 +557,7 @@ state gameover
     state_entry()
     {
         llRegionSayTo(player, 0, "Gameover. You have scored " + (string)player_score + " points. Thanks for playing."); 
+        llReleaseControls( );
         llSetTimerEvent(.25);
     }
     timer()
