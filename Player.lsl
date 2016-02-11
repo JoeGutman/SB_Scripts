@@ -115,7 +115,7 @@ settings_reset()
 ball_roll()
 {
     integer channel = Key2AppChan(llGetKey());
-    ball_listenhandle = llListen(integer channel, "", NULL_KEY, "")
+    ball_listenhandle = llListen(channel, "", NULL_KEY, "");
 
     ball_throwncount --;
     llOwnerSay((string)ball_throwncount);
