@@ -110,6 +110,7 @@ settings_reset()
 
     arrow_currenttextpos = 0;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
+    llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 }
 
 ball_roll()
@@ -208,30 +209,6 @@ mode_change()
     }
 }
 
-scoreboard_set()
-{
-    integer i = llStringLength((string)player_score);
-    integer faces = llGetLinkNumberOfSides(scoreboard_link);
-    while (i > 0)
-    {
-        integer subscore = (integer)llGetSubString((string)player_score, i-1, i-1);
-        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, faces-1, llList2Key (digital_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
-        faces --;
-        i --;
-    }
-}
-
-scoreboard_clear()
-{
-    llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
-    llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
-}
-
-ball_countset()
-{
-    llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ball_count+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);    
-}
-
 highscore_set()
 {
 
@@ -309,12 +286,10 @@ default
         llRequestPermissions(llGetOwner(), PERMISSION_DEBIT); 
 
         arrow_link = Desc2LinkNum(arrow_desc);
-        scoreboard_link = Desc2LinkNum(scoreboard_desc);
         mode_link = Desc2LinkNum(mode_desc);
         guide_link = Desc2LinkNum(guide_desc);
         ball_countlink = Desc2LinkNum(ball_countdesc);
 
-        scoreboard_clear();
         settings_reset();      
     }
     run_time_permissions(integer perm)
@@ -376,9 +351,6 @@ state play
             llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
             llSetLinkAlpha(mode_link, 1.0, 0);
-            scoreboard_clear();
-            scoreboard_set();
-            ball_countset();
         }   
         else
         {
@@ -489,11 +461,9 @@ state play
         if (index != -1)
         {
             player_score += (integer)llGetSubString(string_test, 6, -1);
-            scoreboard_set();
 
             ball_count ++;
             //llOwnerSay((string)ball_count);
-            ball_countset();
             if (ball_count >= ball_countlimit)
             {
                 state gameover;
