@@ -68,7 +68,7 @@ integer guide_maxlength = 5;
 //ball count settings
 integer ballcount = 0; // Amount of balls that have been rolled.
 integer ballcount_thrown;
-integer ballcountlimit = 9; // Max amount of balls that can be rolled.
+integer ballcount_limit = 9; // Max amount of balls that can be rolled.
 
 //quit button settings
 integer quit_link;
@@ -81,7 +81,7 @@ settings_reset()
 
     aim_rot = 0;
     aim_pos = 0;
-    ball_throwncount = ballcountlimit;
+    ballcount_thrown = ballcount_limit;
     ball_speed = 0;
     timer_count = 0;
     ball_speedflip = 0;
@@ -102,7 +102,6 @@ settings_reset()
 
     arrow_currenttextpos = 0;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
-    llSetLinkPrimitiveParamsFast(ball_countlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 }
 
 ball_roll()
@@ -110,8 +109,8 @@ ball_roll()
     integer channel = Key2AppChan(llGetKey());
     ball_listenhandle = llListen(channel, "", NULL_KEY, "");
 
-    ball_throwncount --;
-    llOwnerSay((string)ball_throwncount);
+    ballcount_thrown --;
+    llOwnerSay((string)ballcount_thrown);
 
     timer_speed = 1;
     llSetTimerEvent(timer_speed);
@@ -130,7 +129,7 @@ ball_roll()
         llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
         ball_speed = 0;
     }
-    if (ball_count >= ballcountlimit)
+    if (ballcount >= ballcount_limit)
     {
         current_time = timer_count;
     }
@@ -223,12 +222,12 @@ default
         llSetPayPrice(PAY_HIDE, [PAY_HIDE, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
         llRequestPermissions(llGetOwner(), PERMISSION_DEBIT); 
 
-        arrow_link = name2LinkNum(arrow_name);
-        mode_link = name2LinkNum(mode_name);
-        guide_link = name2LinkNum(guide_name);
+        arrow_link = Name2LinkNum(arrow_name);
+        mode_link = Name2LinkNum(mode_name);
+        guide_link = Name2LinkNum(guide_name);
         quit_link = Name2LinkNum(quit_name);
 
-        quit_message = llList2String(llGetLinkPrimitiveParams(quit_link, [PRIM_name]), 0);
+        quit_message = llList2String(llGetLinkPrimitiveParams(quit_link, [PRIM_NAME]), 0);
 
         settings_reset();      
     }
@@ -329,7 +328,7 @@ state play
             }
         }
         
-        if (ball_count < ballcountlimit && ball_throwncount > 0)
+        if (ballcount < ballcount_limit && ballcount_thrown > 0)
         {
             if (aim_mode == 1)
             {
@@ -392,12 +391,12 @@ state play
     {
         if (message == "scratch")
         {
-            ball_throwncount ++;
-            if (ball_throwncount > ballcountlimit)
+            ballcount_thrown ++;
+            if (ballcount_thrown > ballcount_limit)
             {
-                ball_throwncount = ballcountlimit;
+                ballcount_thrown = ballcount_limit;
             }
-            llOwnerSay((string)ball_throwncount);    
+            llOwnerSay((string)ballcount_thrown);    
         }
         llListenRemove(ball_listenhandle);    
     }  
@@ -408,7 +407,7 @@ state play
         {
             state gameover;
         }
-        if ( ball_throwncount > 0)
+        if ( ballcount_thrown > 0)
         {
             if(ball_speedflip == 1)
             {
@@ -448,6 +447,5 @@ state gameover
 
         settings_reset();
         state pay;
-        }
     }
 }
