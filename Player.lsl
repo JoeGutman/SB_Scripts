@@ -69,6 +69,9 @@ integer guide_maxlength = 5;
 integer ballcount = 0; // Amount of balls that have been rolled.
 integer ballcount_thrown;
 integer ballcount_limit = 9; // Max amount of balls that can be rolled.
+integer ballgutter_link;
+integer ballgutter_name = "ball gutter";
+key ballgutter_texture = NULL_KEY;
 
 //quit button settings
 integer quit_link;
@@ -133,6 +136,14 @@ ball_roll()
     {
         current_time = timer_count;
     }
+}
+
+ballgutter_set()
+{
+    integer texture_xscale = 1 / ballcount_limit;
+    integer texture_startpos = .5 - (texture_xscale/2) 
+    integer texture_xpos = texture_startpos - (texture_xscale * ballcount_thrown)
+    llSetLinkPrimitiveParamsFast(ballgutter_link, [PRIM_TEXTURE, 0, ballgutter_texture, < 1.0, texture_xscale, 0>, ZERO_VECTOR, 0.0]);
 }
 
 aim_move()
@@ -226,6 +237,7 @@ default
         mode_link = Name2LinkNum(mode_name);
         guide_link = Name2LinkNum(guide_name);
         quit_link = Name2LinkNum(quit_name);
+        ballgutter_link = Name2LinkNum(ballgutter_name);
 
         quit_message = llList2String(llGetLinkPrimitiveParams(quit_link, [PRIM_NAME]), 0);
 

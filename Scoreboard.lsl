@@ -11,16 +11,20 @@ string hole_name = "hole";
 
 //ballcount settings
 integer ballcount;
-integer ballcount_link;
-string ballcount_name = "ballcount";
+integer scoreboard_ballcountlink; // the scoreboard slot that shows how many balls have been thrown.
+string scoreboard_ballcountname = "scoreboard_ballcountdisplay";
 
 //score settings
 integer score;
-integer scoreboard_link;
-string scoreboard_name = "scoreboard";
+integer scoreboard_scorelink;
+string scoreboard_scorename = "scoreboard_scoredisplay";
 integer highscoreboard_length = 10; //How many players/scores can be in the highscore/player lists.
 integer scoreboard_flashlimit = 6; //2 for each flash cycle
 list digital_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69d8-f048-d24d3bbd58ac","92e5fe83-cea4-6bfd-c32c-21ee32a15b90","7ab4ca65-528f-aeab-f7c4-de7e9dd0cd48","11dceab3-9121-d9ac-8741-34ccaa509f0d","d9d87ec3-7379-c859-e663-d7641736df08","5ae3f95c-91e8-9683-2666-7b2ae1ebd9b0","c3d04bb9-2a91-6857-944a-8a73caaf1f42","6df27617-a5f8-8f14-f196-490089ba8955","4196499f-7554-16ea-d545-2bad00f2f045","ae8f016c-8ccc-b1d0-3a6a-213d1ba8e13a"];
+
+
+//scoreboard settings
+
 
 //highscore settings
 integer highscoreboard_length = 10; //How many players/scores can be in the highscore/player lists.
@@ -31,21 +35,30 @@ list player_names;
 scoreboard_set() //updates scoreboard based on the current score at time of call to the function
 {
     integer i = llStringLength((string)score);
-    integer faces = llGetLinkNumberOfSides(scoreboard_link);
+    integer faces = llGetLinkNumberOfSides(scoreboard_scorelink);
     while (i > 0)
     {
         integer subscore = (integer)llGetSubString((string)score, i-1, i-1);
-        llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, faces-1, llList2Key (digital_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, faces-1, llList2Key (digital_numbers, subscore+1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
         faces --;
         i --;
     }
-    llSetLinkPrimitiveParamsFast(ballcount_link, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ballcount + 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+    llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ballcount + 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 }
 
 scoreboard_clear()
 {
-    llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
-    llSetLinkPrimitiveParamsFast(ballcount_link, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+    llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
+}
+
+ballcount_set()
+{
+    llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ballcount + 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+}
+
+ballcount_clear()
+{
+    llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 }
 
 highscore_set()
@@ -130,8 +143,9 @@ default
 {
 	state_entry()
 	{
-		scoreboard_link = Name2LinkNum(scoreboard_name);
-		ballcount_link = Name2LinkNum(ballcount_name);
+		scoreboard_scorelink = Name2LinkNum(scoreboard_scorename);
+		scoreboard_ballcountlink = Name2LinkNum(scoreboard_ballcountname);
+        balls_displaylink = Name2LinkNum(balls_displayname);
 		quit_link = Name2LinkNum(quit_name);
 		quit_message = llList2String(llGetLinkPrimitiveParams(quit_link, [PRIM_DESC]), 0);
 
@@ -172,13 +186,13 @@ default
     {
         if (scoreboard_flash < scoreboard_flashlimit)
         {
-            if (llList2Integer(llGetLinkPrimitiveParams(scoreboard_link, [PRIM_FULLBRIGHT, ALL_SIDES]), 0) == TRUE)
+            if (llList2Integer(llGetLinkPrimitiveParams(scoreboard_scorelink, [PRIM_FULLBRIGHT, ALL_SIDES]), 0) == TRUE)
             {
-                llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_GLOW, ALL_SIDES, 0.00, PRIM_FULLBRIGHT, ALL_SIDES, FALSE]);
+                llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_GLOW, ALL_SIDES, 0.00, PRIM_FULLBRIGHT, ALL_SIDES, FALSE]);
             }
             else
             {
-                llSetLinkPrimitiveParamsFast(scoreboard_link, [PRIM_GLOW, ALL_SIDES, 0.02, PRIM_FULLBRIGHT, ALL_SIDES, TRUE]);
+                llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_GLOW, ALL_SIDES, 0.02, PRIM_FULLBRIGHT, ALL_SIDES, TRUE]);
             }
             scoreboard_flash ++;
         }
