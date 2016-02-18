@@ -48,7 +48,11 @@ state play
 {
 	link_message(integer sender_num, integer num, string str, key id)
     {
+<<<<<<< HEAD
     	if (message == "game over")
+=======
+    	if (message == "gameover")
+>>>>>>> refs/remotes/origin/Scoring
     	{
     		state gameover;
     	}	
