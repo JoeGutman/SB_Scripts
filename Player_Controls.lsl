@@ -10,11 +10,10 @@ integer message_channel;
 //player settings
 key player;
 integer player_score;
-list player_highscores;
 list player_names;
 
 //aim settings
-integer aim_mode = 1; // aim_mode 0 = Move Left/Right; aim_mode 3 = Rot Left/Right
+integer aim_mode = 1; // aim_mode 1 = Move Left/Right; aim_mode 2 = Rot Left/Right
 integer aim_rot = 0;
 integer aim_rotincrement = 1;
 integer aim_rotlimit = 20; //in degrees
@@ -67,79 +66,27 @@ string guide_name = "guide";
 vector guide_scale;
 integer guide_maxlength = 5;
 
-//ball count settings
-integer ballcount = 0; // Amount of balls that have been rolled.
-integer ballcount_thrown = 9;
-integer ballcount_limit = 9; // Max amount of balls that can be rolled.
-integer ballgutter_link;
-string ballgutter_name = "ball gutter";
-key ballgutter_texture = "a58acd34-0b95-4b77-c83e-4885f7e39a89";
-integer scratch_link;
-string scratch_name = "scratch";
-
-//quit button settings
-integer quit_link;
-string quit_name = "quit";
-string quit_message;
-
-settings()
-{
-    //gather link numbers
-    arrow_link = Name2LinkNum(arrow_name);
-    mode_link = Name2LinkNum(mode_name);
-    guide_link = Name2LinkNum(guide_name);
-
-    //gather aim scale and limits
-    arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
-    base_scale = llGetScale();
-    arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
-    guide_scale = llList2Vector(llGetLinkPrimitiveParams(guide_link, [PRIM_SIZE]), 0);
-    aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
-
-    //Reset aim position  
-    aim_rot = 0;
-    aim_pos = 0;    
-    llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
-    llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
-    llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
-
-    llSetLinkAlpha(arrow_link, 0.0, ALL_SIDES);
-    llSetLinkAlpha(guide_link, 0.0, ALL_SIDES);
-    llSetLinkAlpha(mode_link, 0.0, 0);
-
-    arrow_currenttextpos = 0;
-    llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
-
-    ball_speedflip = 0;
-    llReleaseControls();
-    
-}
-
 ball_roll()
 {
     integer channel = Key2Chan(llGetKey());
     ball_listenhandle = llListen(channel, "", NULL_KEY, "");
-
-    ballcount_thrown --;
-    ballgutter_set();
-    llOwnerSay((string)ballcount_thrown);
 
     llSetTimerEvent(0);
 
     arrow_currenttextpos = 0;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
 
-    if (ballcount_thrown <= ballcount_limit)
-    {
-        arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
-        arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
 
-        vector velocity = (ball_mass * ball_speed * ball_direction)*(llGetRot()*arrow_rot);
-        vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
+    arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
+    arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
 
-        llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
-        ball_speed = 0;
-    }
+    vector velocity = (ball_mass * ball_speed * ball_direction)*(llGetRot()*arrow_rot);
+    vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
+
+    llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
+    ball_speed = 0;
+
+    llMessageLinked(LINK_ROOT, 0, "ball thrown", NULL_KEY);
 }
 
 aim_move()
@@ -173,7 +120,7 @@ aim_move()
     }
 }
 
-mode_change()
+aimmode_set()
 {
     if (aim_mode == 1)
     {
@@ -226,12 +173,36 @@ default
 {
     state_entry()
     {
-        quit_message = llList2String(llGetLinkPrimitiveParams(quit_link, [PRIM_NAME]), 0);
-        settings_reset();      
+        llReleaseControls();
+        //gather link numbers
+        arrow_link = Name2LinkNum(arrow_name);
+        mode_link = Name2LinkNum(mode_name);
+        guide_link = Name2LinkNum(guide_name);
+
+        //gather aim scale and limits
+        arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
+        base_scale = llGetScale();
+        arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
+        guide_scale = llList2Vector(llGetLinkPrimitiveParams(guide_link, [PRIM_SIZE]), 0);
+        aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
+
+        ball_speedflip = 0; 
+
+        //reset aimmode
+        aim_mode = 1;
+        aimmode_set();
+    }
+    link_message(integer sender_num, integer num, string str, key id)
+    {
+        if (str == "new game")    
+        {
+            player = id;
+            state controls;
+        }
     }
 }
 
-state play 
+state controls
 {
     state_entry()
     {
@@ -243,7 +214,6 @@ state play
     {
         if (perm & PERMISSION_TAKE_CONTROLS)
         {
-            settings_reset();
             llTakeControls(
                             CONTROL_FWD |
                             CONTROL_BACK |
@@ -256,24 +226,15 @@ state play
                             CONTROL_LBUTTON |
                             CONTROL_ML_LBUTTON ,
                             TRUE, FALSE);
-            llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
-            llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
-            llSetLinkAlpha(mode_link, 1.0, 0);
         }   
         else
         {
-            state pay;     
+            llMessageLinked(LINK_ROOT, 0, "game over", NULL_KEY);    
         } 
-    }
-    touch_start(integer num_detected)
-    {
-        if(llDetectedLinkNumber(0) == quit_link && llDetectedKey(0) == player)
-        {
-            state gameover;
-        }
     }
     control(key id, integer held, integer pressed)
     {
+        llMessageLinked(LINK_ROOT, 0, "activity", NULL_KEY);
         if (CONTROL_FWD & pressed && CONTROL_BACK & pressed && CONTROL_ROT_LEFT & pressed && CONTROL_ROT_RIGHT & pressed)
         {
             timer_count = 0;
@@ -287,99 +248,91 @@ state play
                 if (aim_mode == 1)
                 {
                     aim_mode ++;
-                    mode_change();
+                    aimmode_set();
                 }
                 else 
                 {
                     aim_mode --;
-                    mode_change();
+                    aimmode_set();
                 }
             }
         }
         
-        if (ballcount < ballcount_limit && ballcount_thrown > 0)
+        if (aim_mode == 1)
         {
-            if (aim_mode == 1)
+            if (CONTROL_ROT_LEFT & held || CONTROL_LEFT & held)
             {
-                if (CONTROL_ROT_LEFT & held || CONTROL_LEFT & held)
+                if (aim_pos > -aim_poslimit)
                 {
-                    if (aim_pos > -aim_poslimit)
-                    {
-                        aim_pos --;
-                        aim_move();
-                    }
-                }
-                else if (CONTROL_ROT_RIGHT & held || CONTROL_RIGHT & held)
-                {
-                    if (aim_pos < aim_poslimit)
-                    {
-                        aim_pos ++;
-                        aim_move();
-                    }
+                    aim_pos --;
+                    aim_move();
                 }
             }
-            else if (aim_mode == 2)
+            else if (CONTROL_ROT_RIGHT & held || CONTROL_RIGHT & held)
             {
-                if (CONTROL_ROT_LEFT & held  || CONTROL_LEFT & held)
+                if (aim_pos < aim_poslimit)
                 {
-                    if (aim_rot < aim_rotlimit)
-                    {
-                        aim_rot ++;
-                        aim_move();
-                    }
-                }    
-                else if (CONTROL_ROT_RIGHT & held || CONTROL_RIGHT & held)
+                    aim_pos ++;
+                    aim_move();
+                }
+            }
+        }
+        else if (aim_mode == 2)
+        {
+            if (CONTROL_ROT_LEFT & held  || CONTROL_LEFT & held)
+            {
+                if (aim_rot < aim_rotlimit)
                 {
-                    if (aim_rot > -aim_rotlimit)
-                    {
-                        aim_rot --;
-                        aim_move();
-                    }
+                    aim_rot ++;
+                    aim_move();
                 }
             }    
-
-            if (CONTROL_BACK & pressed)
+            else if (CONTROL_ROT_RIGHT & held || CONTROL_RIGHT & held)
             {
-                control_back_count ++;
-                if (control_back_count <= 1)
+                if (aim_rot > -aim_rotlimit)
                 {
-                    ball_speedflip = 1;
-                    timer_speed = ball_timerspeed;
-                    llSetTimerEvent(timer_speed);
-                }
-                else
-                {
-                    control_back_count = 0;
-                    ball_speedflip = 0;
-                    ball_roll();
+                    aim_rot --;
+                    aim_move();
                 }
             }
-        }    
+        }   
+
+        if (CONTROL_BACK & pressed)
+        {
+            control_back_count ++;
+            if (control_back_count <= 1)
+            {
+                ball_speedflip = 1;
+                timer_speed = ball_timerspeed;
+                llSetTimerEvent(timer_speed);
+            }
+            else
+            {
+                control_back_count = 0;
+                ball_speedflip = 0;
+                ball_roll();
+            }
+        } 
     }
     timer()
     {
-        if ( ballcount_thrown > 0)
+        if(ball_speedflip == 1)
         {
-            if(ball_speedflip == 1)
+            ball_speed += ball_speedincrement;
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos += .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
+            if (ball_speed >= ball_speedlimit)
             {
-                ball_speed += ball_speedincrement;
-                llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos += .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
-                if (ball_speed >= ball_speedlimit)
-                {
-                    ball_speedflip = 2;
-                }
-                //llOwnerSay((string)ball_speed);
+                ball_speedflip = 2;
             }
-            else if (ball_speedflip == 2)
-            {
-                ball_speed -= ball_speedincrement;
-                llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos -= .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
-                if (ball_speed <= 0)
-                {
-                    ball_speedflip = 1;
-                } 
-                //llOwnerSay((string)ball_speed);
-            }    
         }
+        else if (ball_speedflip == 2)
+        {
+            ball_speed -= ball_speedincrement;
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos -= .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
+            if (ball_speed <= 0)
+            {
+                ball_speedflip = 1;
+            } 
+        }    
     }
 }

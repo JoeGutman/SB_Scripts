@@ -1,12 +1,24 @@
 key player;
 integer price = 1;
-integer timout_length = 300; //length, in seconds the game can be inactive before restarting.
-string gameover_message = "";
-string scoreboard_name = "scoreboard";
-string quit_name = "quit";
 
-//link numbers
+//quit settings
 integer quitbutton_link;
+string quit_name = "quit";
+string gameover_message = "The game has ended!";
+integer timeout_length = 300; //length, in seconds the game can be inactive before restarting.
+
+//aim settings
+integer arrow_link;
+string arrow_name = "arrow";
+vector arrow_scale;
+vector arrow_startpos; 
+integer arrow_rotoffset = 90;
+key arrow_texture = "663649e6-2b6b-8c6d-e7fc-a4917deaaf97";
+integer mode_link ;
+string mode_name = "mode";
+integer guide_link;
+string guide_name = "guide";
+vector guide_scale;
 
 //game settings
 integer score;
@@ -19,6 +31,14 @@ integer ballcount_thrown = 9;
 integer ballcount_limit = 9;
 string ball_name = "[BBS] Skeeball Ball";
 
+//ball gutter settings
+integer ballgutter_link;
+string ballgutter_name = "gutter";
+key ballgutter_texture = "a58acd34-0b95-4b77-c83e-4885f7e39a89";
+
+integer scratch_link;
+string scratch_name = "scratch";
+
 //hole settings
 list hole_links;
 integer hole_count = 8;
@@ -26,16 +46,35 @@ string hole_name = "hole";
 
 //scoreboard settings
 integer scoreboard_scorelink;
-string scoreboard_scorename = "scoreboard_scoredisplay";
+string scoreboard_scorename = "scoreboard";
 integer scoreboard_ballcountlink; // the scoreboard slot that shows how many balls have been thrown.
-string scoreboard_ballcountname = "scoreboard_ballcountdisplay";
+string scoreboard_ballcountname = "ballcount";
+integer scoreboard_flash;
 integer scoreboard_flashlimit = 3; // How many times the scoreboard will flash at gameover
 list digital_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69d8-f048-d24d3bbd58ac","92e5fe83-cea4-6bfd-c32c-21ee32a15b90","7ab4ca65-528f-aeab-f7c4-de7e9dd0cd48","11dceab3-9121-d9ac-8741-34ccaa509f0d","d9d87ec3-7379-c859-e663-d7641736df08","5ae3f95c-91e8-9683-2666-7b2ae1ebd9b0","c3d04bb9-2a91-6857-944a-8a73caaf1f42","6df27617-a5f8-8f14-f196-490089ba8955","4196499f-7554-16ea-d545-2bad00f2f045","ae8f016c-8ccc-b1d0-3a6a-213d1ba8e13a"];
+
 
 //highscore settings
 //integer highscoreboard_length = 10; //How many players/scores can be in the highscore/player lists.
 //list player_highscores;
 //list player_names;
+
+new_game()
+{
+    //clear score
+    score = 0;
+    llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
+
+    //clear ball count
+    ballcount = 0;
+    llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+
+    llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
+    llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
+    llSetLinkAlpha(mode_link, 1.0, 0);
+
+    llListen(Key2AppChan(llGetKey()), "", NULL_KEY, "");
+}
 
 scoreboard_set() //updates scoreboard based on the current score at time of call to the function
 {
@@ -53,6 +92,10 @@ scoreboard_set() //updates scoreboard based on the current score at time of call
 ballcount_set()
 {
     llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, ballcount + 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+    if (ballcount >= ballcount_limit)
+    {
+        state gameover;
+    }
 }
 
 ballgutter_set()
@@ -137,26 +180,54 @@ integer Name2LinkNum(string sName)
     return -1;
 }
 
+integer Key2AppChan(key ID) 
+{
+    return 0x80000000 | (integer)("0x"+(string)ID);
+}
+
 default
 {
     state_entry()
     {
         scoreboard_scorelink = Name2LinkNum(scoreboard_scorename);
         scoreboard_ballcountlink = Name2LinkNum(scoreboard_ballcountname);
-        balls_displaylink = Name2LinkNum(balls_displayname);
-        ballgutter_link = Name2LinkNum(ballgutter_name);
         scratch_link = Name2LinkNum(scratch_name);
+        quitbutton_link = Name2LinkNum(quit_name);
 
+        //ball gutter settings
+        ballgutter_link = Name2LinkNum(ballgutter_name);
+        ballgutter_set();
+
+        //aim settings
+        arrow_link = Name2LinkNum(arrow_name);
+        mode_link = Name2LinkNum(mode_name);
+        guide_link = Name2LinkNum(guide_name);
+        arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
+        arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
+        guide_scale = llList2Vector(llGetLinkPrimitiveParams(guide_link, [PRIM_SIZE]), 0);
+
+        //Reset aim position      
+        llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
+        llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
+        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
+
+        llSetLinkAlpha(arrow_link, 0.0, ALL_SIDES);
+        llSetLinkAlpha(guide_link, 0.0, ALL_SIDES);
+        llSetLinkAlpha(mode_link, 0.0, 0);
+
+        llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
+
+        //hole link numbers
         integer i = 1;
-        while (i <= hole_count) //get link numbers for hole score prims
+        while (i <= hole_count)
         {
             hole_links += Name2LinkNum( hole_name + "_" +(string)i);
             i++;
         }
 
-        reset();
         llSetPayPrice(PAY_HIDE, [PAY_HIDE, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
         llRequestPermissions(llGetOwner(), PERMISSION_DEBIT); 
+        llResetOtherScript("Player_Controls");
     }
     run_time_permissions(integer perm)
     {
@@ -176,8 +247,6 @@ state pay
     state_entry()
     {
         llSetPayPrice(price, [price, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
-        quitbutton_link = Name2LinkNum(quit_name);
-        scoreboard_link = Name2LinkNum(scoreboard_name);
     }
     money(key id, integer amount)
     {
@@ -200,7 +269,8 @@ state play
 {
     state_entry()
     {
-        llSetTimerEvent(timout_length);
+        new_game();
+        llSetTimerEvent(timeout_length);
     }
     touch_start(integer num_detected)
     {
@@ -211,9 +281,20 @@ state play
     }
     collision(integer num_detected)
     {
+        if (llDetectedLinkNumber(0) == scratch_link && llKey2Name(llDetectedKey(0)) == ball_name) //check if the ball collided with a hole prim
+        {
+            llSetTimerEvent(timeout_length);
+            object = llDetectedKey(0);
+            message_channel = Key2AppChan(object);
+            llSay(message_channel, "die"); //delete ball
+
+            ballcount_thrown ++;
+            ballgutter_set();
+        }
+
         if (llListFindList(hole_links, [llDetectedLinkNumber(0)]) != -1) //check if the ball collided with a hole prim
         {
-            llSetTimerEvent(timer_length);
+            llSetTimerEvent(timeout_length);
             if (object == llDetectedKey(0)) //check for duplicate collision
             {
                 llSay(message_channel, "die");
@@ -221,39 +302,38 @@ state play
             else if (llKey2Name(llDetectedKey(0)) == ball_name) //check if ball collided with hole
             {
                 object = llDetectedKey(0);
-                message_channel = Key2Chan(object);
+                message_channel = Key2AppChan(object);
                 llSay(message_channel, "die"); //delete ball
 
                 ballcount ++; //add to ballcount when a proper collision is detected
                 score += llList2Integer(llGetLinkPrimitiveParams(llDetectedLinkNumber(0), [PRIM_DESC]), 0); //grab prim description of the hole which holds the assigned points and add points to score
                 scoreboard_set(); //update scoreboard to reflect new score
+                ballcount_set();
             }
-        }
-        else if (llDetectedLinkNumber(0) == scratch_link)
-        {
-            ballcount_thrown ++;
-            ballgutter_set();
         }
     }
     link_message(integer sender_num, integer num, string str, key id)
     {
-        if (message == "game over")
+        if (str == "game over")
         {
             state gameover;
         }
-        else if (message == "activity")
+        else if (str == "activity")
         {
-            llSetTimerEvent(timer_length);
+            llSetTimerEvent(timeout_length);
         }
-        else if (message == "ball thrown")
+        else if (str == "ball thrown")
         {
             ballcount_thrown --;
             ballgutter_set();
-
-            if (ballcount_thrown <= 0)
-            {
-
-            }
+        }   
+    }
+    listen(integer channel, string name, key id, string message)
+    {
+        if (message == "scratch")
+        {
+            ballcount_thrown ++;
+            ballgutter_set();    
         }   
     }
     timer()
@@ -266,17 +346,11 @@ state gameover
 {
     state_entry()
     {
+        llSetTimerEvent(.5);
+        llRegionSayTo(player, 0, "Game over! You have scored " + score + " points.");
+
         player = NULL_KEY;
-        llResetOtherScript("Player_Controls");
-        llMessageLinked(LINK_ROOT, 0, "game over", id);
-
-        //clear score
-        score = 0;
-        llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
-
-        //clear ball count
-        ballcount = 0;
-        llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+        llMessageLinked(LINK_ROOT, 0, "game over", NULL_KEY);
 
         //Reset aim position      
         llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
@@ -285,9 +359,14 @@ state gameover
 
         llSetLinkAlpha(arrow_link, 0.0, ALL_SIDES);
         llSetLinkAlpha(guide_link, 0.0, ALL_SIDES);
-        llSetLinkAlpha(mode_link, 0.0, 0);
+        llSetLinkAlpha(mode_link, 0.0, ALL_SIDES);
 
         llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
+        llResetOtherScript("Player_Controls");
+
+        //Reset ball gutter
+        ballcount_thrown = ballcount_limit;
+        ballgutter_set();
     }
 
     timer()
@@ -307,6 +386,7 @@ state gameover
         else
         {
             llSetTimerEvent(0);
+            state pay;
         }
     }
 }
