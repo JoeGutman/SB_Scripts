@@ -4,6 +4,8 @@ float timer_count = 0;
 float timer_speed = 1;
 float current_time;
 vector base_scale;
+key object;
+integer message_channel;
 
 //player settings
 key player;
@@ -70,8 +72,10 @@ integer ballcount = 0; // Amount of balls that have been rolled.
 integer ballcount_thrown;
 integer ballcount_limit = 9; // Max amount of balls that can be rolled.
 integer ballgutter_link;
-integer ballgutter_name = "ball gutter";
-key ballgutter_texture = NULL_KEY;
+string ballgutter_name = "ball gutter";
+key ballgutter_texture = "a58acd34-0b95-4b77-c83e-4885f7e39a89";
+integer scratch_link;
+string scratch_name = "scratch";
 
 //quit button settings
 integer quit_link;
@@ -105,14 +109,17 @@ settings_reset()
 
     arrow_currenttextpos = 0;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
+
+    ballgutter_set();
 }
 
 ball_roll()
 {
-    integer channel = Key2AppChan(llGetKey());
+    integer channel = Key2Chan(llGetKey());
     ball_listenhandle = llListen(channel, "", NULL_KEY, "");
 
     ballcount_thrown --;
+    ballgutter_set();
     llOwnerSay((string)ballcount_thrown);
 
     timer_speed = 1;
@@ -136,14 +143,6 @@ ball_roll()
     {
         current_time = timer_count;
     }
-}
-
-ballgutter_set()
-{
-    integer texture_xscale = 1 / ballcount_limit;
-    integer texture_startpos = .5 - (texture_xscale/2) 
-    integer texture_xpos = texture_startpos - (texture_xscale * ballcount_thrown)
-    llSetLinkPrimitiveParamsFast(ballgutter_link, [PRIM_TEXTURE, 0, ballgutter_texture, < 1.0, texture_xscale, 0>, ZERO_VECTOR, 0.0]);
 }
 
 aim_move()
@@ -221,7 +220,7 @@ integer Name2LinkNum(string sName)
     return -1;
 }
 
-integer Key2AppChan(key ID) 
+integer Key2Chan(key ID) 
 {
     return 0x80000000 | (integer)("0x"+(string)ID);
 }
@@ -230,47 +229,30 @@ default
 {
     state_entry()
     {
-        llSetPayPrice(PAY_HIDE, [PAY_HIDE, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
-        llRequestPermissions(llGetOwner(), PERMISSION_DEBIT); 
 
         arrow_link = Name2LinkNum(arrow_name);
         mode_link = Name2LinkNum(mode_name);
         guide_link = Name2LinkNum(guide_name);
         quit_link = Name2LinkNum(quit_name);
         ballgutter_link = Name2LinkNum(ballgutter_name);
+        scratch_link = Name2LinkNum(scratch_name);
 
         quit_message = llList2String(llGetLinkPrimitiveParams(quit_link, [PRIM_NAME]), 0);
 
         settings_reset();      
     }
-    run_time_permissions(integer perm)
+    link_message(integer sender_num, integer num, string str, key id)
     {
-        if (perm & PERMISSION_DEBIT)
+        if (str == "new game")
         {
-            state pay;
-        }
-    }
-}
-
-state pay 
-{
-    state_entry()
-    {
-        llSetPayPrice(price, [price, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
-    }
-    money(key id, integer amount)
-    {
-        if (amount != price)
-        {
-            llRegionSayTo(id, 0, "Sorry, you have not paid the correct amount and have been refunded. Please pay " + (string)price + "L$ to play."); 
-            llGiveMoney(id, amount);
-        }
-        else if (amount == price)    
-        {
-            llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
-            player = id;
-            state play;
-        }
+            arrow_link = Name2LinkNum(arrow_name);
+            mode_link = Name2LinkNum(mode_name);
+            guide_link = Name2LinkNum(guide_name);
+            quit_link = Name2LinkNum(quit_name);
+            ballgutter_link = Name2LinkNum(ballgutter_name);
+            scratch_link = Name2LinkNum(scratch_name);
+            settings_reset();     
+        }    
     }
 }
 
@@ -399,19 +381,6 @@ state play
             }
         }    
     }
-    listen(integer channel, string name, key id, string message)
-    {
-        if (message == "scratch")
-        {
-            ballcount_thrown ++;
-            if (ballcount_thrown > ballcount_limit)
-            {
-                ballcount_thrown = ballcount_limit;
-            }
-            llOwnerSay((string)ballcount_thrown);    
-        }
-        llListenRemove(ball_listenhandle);    
-    }  
     timer()
     {
         timer_count += timer_speed;
