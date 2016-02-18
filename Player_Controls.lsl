@@ -69,7 +69,7 @@ integer guide_maxlength = 5;
 
 //ball count settings
 integer ballcount = 0; // Amount of balls that have been rolled.
-integer ballcount_thrown;
+integer ballcount_thrown = 9;
 integer ballcount_limit = 9; // Max amount of balls that can be rolled.
 integer ballgutter_link;
 string ballgutter_name = "ball gutter";
@@ -82,23 +82,23 @@ integer quit_link;
 string quit_name = "quit";
 string quit_message;
 
-settings_reset()
+settings()
 {
-    llListenRemove(ball_listenhandle);  
+    //gather link numbers
+    arrow_link = Name2LinkNum(arrow_name);
+    mode_link = Name2LinkNum(mode_name);
+    guide_link = Name2LinkNum(guide_name);
 
-    aim_rot = 0;
-    aim_pos = 0;
-    ballcount_thrown = ballcount_limit;
-    ball_speed = 0;
-    timer_count = 0;
-    ball_speedflip = 0;
+    //gather aim scale and limits
     arrow_startpos = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_POS_LOCAL]), 0);
     base_scale = llGetScale();
     arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
     guide_scale = llList2Vector(llGetLinkPrimitiveParams(guide_link, [PRIM_SIZE]), 0);
-
     aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
-    
+
+    //Reset aim position  
+    aim_rot = 0;
+    aim_pos = 0;    
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
     llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
     llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
@@ -110,7 +110,9 @@ settings_reset()
     arrow_currenttextpos = 0;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
 
-    ballgutter_set();
+    ball_speedflip = 0;
+    llReleaseControls();
+    
 }
 
 ball_roll()
@@ -122,8 +124,7 @@ ball_roll()
     ballgutter_set();
     llOwnerSay((string)ballcount_thrown);
 
-    timer_speed = 1;
-    llSetTimerEvent(timer_speed);
+    llSetTimerEvent(0);
 
     arrow_currenttextpos = 0;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
@@ -138,10 +139,6 @@ ball_roll()
 
         llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
         ball_speed = 0;
-    }
-    if (ballcount >= ballcount_limit)
-    {
-        current_time = timer_count;
     }
 }
 
@@ -229,30 +226,8 @@ default
 {
     state_entry()
     {
-
-        arrow_link = Name2LinkNum(arrow_name);
-        mode_link = Name2LinkNum(mode_name);
-        guide_link = Name2LinkNum(guide_name);
-        quit_link = Name2LinkNum(quit_name);
-        ballgutter_link = Name2LinkNum(ballgutter_name);
-        scratch_link = Name2LinkNum(scratch_name);
-
         quit_message = llList2String(llGetLinkPrimitiveParams(quit_link, [PRIM_NAME]), 0);
-
         settings_reset();      
-    }
-    link_message(integer sender_num, integer num, string str, key id)
-    {
-        if (str == "new game")
-        {
-            arrow_link = Name2LinkNum(arrow_name);
-            mode_link = Name2LinkNum(mode_name);
-            guide_link = Name2LinkNum(guide_name);
-            quit_link = Name2LinkNum(quit_name);
-            ballgutter_link = Name2LinkNum(ballgutter_name);
-            scratch_link = Name2LinkNum(scratch_name);
-            settings_reset();     
-        }    
     }
 }
 
@@ -383,11 +358,6 @@ state play
     }
     timer()
     {
-        timer_count += timer_speed;
-        if (timer_count/timeout >= 1)
-        {
-            state gameover;
-        }
         if ( ballcount_thrown > 0)
         {
             if(ball_speedflip == 1)
@@ -411,22 +381,5 @@ state play
                 //llOwnerSay((string)ball_speed);
             }    
         }
-
-        if (timer_count - current_time >= ball_life && ballcount >= ballcount_limit)
-        {
-            state gameover;
-        }
-    }
-}
-
-state gameover
-{
-    state_entry()
-    {
-        llRegionSayTo(player, 0, "Gameover. You have scored " + (string)player_score + " points. Thanks for playing."); 
-        llReleaseControls();
-
-        settings_reset();
-        state pay;
     }
 }

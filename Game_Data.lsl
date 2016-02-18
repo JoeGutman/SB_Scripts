@@ -1,5 +1,13 @@
 key player;
 integer price = 1;
+integer score;
+integer scoreboard_link;
+integer quitbutton_link;
+integer timer_length = 300; //How long, in seconds the game can be inactive before restarting.
+string gameover_message = "";
+string scoreboard_name = "scoreboard";
+string quit_name = "quit";
+
 
 default
 {
@@ -26,6 +34,8 @@ state pay
     state_entry()
     {
         llSetPayPrice(price, [price, PAY_HIDE, PAY_HIDE, PAY_HIDE]);
+        quitbutton_link = Name2LinkNum(quit_name);
+        scoreboard_link = Name2LinkNum(scoreboard_name);
     }
     money(key id, integer amount)
     {
@@ -46,16 +56,31 @@ state pay
 
 state play
 {
+    state_entry()
+    {
+        llSetTimerEvent(timer_length);
+    }
+    touch_start(integer num_detected)
+    {
+        if(llDetectedLinkNumber(0) == quitbutton_link)
+        {
+            state gameover;
+        }
+    }
 	link_message(integer sender_num, integer num, string str, key id)
     {
-<<<<<<< HEAD
     	if (message == "game over")
-=======
-    	if (message == "gameover")
->>>>>>> refs/remotes/origin/Scoring
     	{
     		state gameover;
-    	}	
+    	}
+        if (message == "activity")
+        {
+            llSetTimerEvent(timer_length);
+        }	
+    }
+    timer()
+    {
+        state gameover;
     }
 }
 
@@ -64,5 +89,8 @@ state gameover
 	state_entry()
 	{
 		player = NULL_KEY;
+        score = llList2Integer(llGetLinkPrimitiveParams(scoreboard_link, [PRIM_DESC]), 0);
+        llResetOtherScript("Player_Controls");
+        llMessageLinked(LINK_ROOT, 0, "game over", id);
 	}
 }
