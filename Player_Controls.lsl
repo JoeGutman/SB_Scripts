@@ -1,16 +1,7 @@
-integer price = 1; // Price to play game in L$
-integer timeout = 300; // Time that can pass, in seconds, with no interaction before game ends.
-float timer_count = 0;
-float timer_speed = 1;
-float current_time;
-vector base_scale;
-key object;
-integer message_channel;
+
 
 //player settings
 key player;
-integer player_score;
-list player_names;
 
 //aim settings
 integer aim_mode = 1; // aim_mode 1 = Move Left/Right; aim_mode 2 = Rot Left/Right
@@ -20,6 +11,7 @@ integer aim_rotlimit = 20; //in degrees
 float aim_pos = 0;
 float aim_posincrement = .05;
 float aim_poslimit; // based off of arrow size and lane size
+
 
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
@@ -65,12 +57,10 @@ integer guide_link;
 string guide_name = "guide";
 vector guide_scale;
 integer guide_maxlength = 5;
+vector base_scale;
 
 ball_roll()
 {
-    integer channel = Key2Chan(llGetKey());
-    ball_listenhandle = llListen(channel, "", NULL_KEY, "");
-
     llSetTimerEvent(0);
 
     arrow_currenttextpos = 0;
@@ -126,30 +116,30 @@ aimmode_set()
     {
         if (aim_pos <= -aim_poslimit)
         {
-            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetextureright, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetextureright, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
         }
         else if (aim_pos >= aim_poslimit)
         {
-            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetextureleft, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetextureleft, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);  
         }
         else
         {
-            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);          
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_movetexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);          
         }
     }
     if (aim_mode == 2)
     {
         if (aim_pos <= -aim_poslimit)
         {
-            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottextureright, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottextureright, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
         }
         else if (aim_pos >= aim_poslimit)
         {
-            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottextureleft, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);  
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottextureleft, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);  
         }
         else
         {
-            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, mode_face, <1.0, 1.0, 1.0>, 1.0]);          
+            llSetLinkPrimitiveParamsFast(mode_link, [PRIM_TEXTURE, mode_face, mode_rottexture, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);          
         }
     }
 }
@@ -207,8 +197,6 @@ state controls
     state_entry()
     {
         llRequestPermissions(player, PERMISSION_TAKE_CONTROLS);
-        timer_speed = 1;
-        llSetTimerEvent(timer_speed);
     }
     run_time_permissions(integer perm)
     {
@@ -235,11 +223,6 @@ state controls
     control(key id, integer held, integer pressed)
     {
         llMessageLinked(LINK_ROOT, 0, "activity", NULL_KEY);
-        if (CONTROL_FWD & pressed && CONTROL_BACK & pressed && CONTROL_ROT_LEFT & pressed && CONTROL_ROT_RIGHT & pressed)
-        {
-            timer_count = 0;
-        }
-
         if (CONTROL_FWD & pressed)
         {
             control_fwd_count ++; //triggers twice for one press and lift
@@ -303,8 +286,7 @@ state controls
             if (control_back_count <= 1)
             {
                 ball_speedflip = 1;
-                timer_speed = ball_timerspeed;
-                llSetTimerEvent(timer_speed);
+                llSetTimerEvent(ball_timerspeed);
             }
             else
             {

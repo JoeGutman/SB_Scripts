@@ -217,6 +217,15 @@ default
 
         llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
 
+        //clear score
+        score = 0;
+        llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
+
+        //clear ball count
+        ballcount = 0;
+        llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+
+
         //hole link numbers
         integer i = 1;
         while (i <= hole_count)
@@ -276,7 +285,15 @@ state play
     {
         if(llDetectedLinkNumber(0) == quitbutton_link)
         {
-            state gameover;
+            if (ballcount <= 0)
+            {
+                llGiveMoney(player, price);
+                state gameover;
+            }
+            else
+            {
+                state gameover;
+            }
         }
     }
     collision(integer num_detected)
@@ -346,8 +363,9 @@ state gameover
 {
     state_entry()
     {
+        llSetScriptState("Player_Controls", FALSE);
         llSetTimerEvent(.5);
-        llRegionSayTo(player, 0, "Game over! You have scored " + score + " points.");
+        llRegionSayTo(player, 0, "Game over! You have scored " + (string)score + " points.");
 
         player = NULL_KEY;
         llMessageLinked(LINK_ROOT, 0, "game over", NULL_KEY);
@@ -362,6 +380,7 @@ state gameover
         llSetLinkAlpha(mode_link, 0.0, ALL_SIDES);
 
         llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
+        llSetScriptState("Player_Controls", TRUE);
         llResetOtherScript("Player_Controls");
 
         //Reset ball gutter
