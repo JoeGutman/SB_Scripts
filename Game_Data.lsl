@@ -281,7 +281,7 @@ state pay
         {
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
             player = id;
-            llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + (<sound_offset, sound_offset,0>* llGetRot()), llGetPos() + (<-sound_offset, -sound_offset,0> * llGetRot())); //skeeball new game music
+            llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>*, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>); //skeeball new game music
             llSetTimerEvent(4.51);
         }
     }
@@ -403,7 +403,7 @@ state gameover
         llResetOtherScript("Player_Controls");
 
         //Reset balls
-        ball_count = 0;
+        ballcount = 0;
         ballcount_thrown = ballcount_limit;
         ballgutter_set();
     }
