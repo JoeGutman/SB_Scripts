@@ -21,7 +21,7 @@ integer control_back_count = 0;
 integer control_fwd_count = 0;
 float ball_speed = 0; 
 float ball_speedincrement = .25;
-float ball_speedlimit = 12;
+float ball_speedmax = 12;
 float ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
 float ball_mass = 1.25;
 vector ball_rezpos = < 0, 0, .1>; // The distance to adjust the ball rez position from the aim arrow. 
@@ -71,9 +71,10 @@ ball_roll()
     arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
 
     vector velocity = (ball_mass * ball_speed * ball_direction)*(llGetRot()*arrow_rot);
+    vector velocity_max = (ball_mass * ball_speedmax * ball_direction)*(llGetRot()*arrow_rot);
     vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
 
-    llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
+    llRezObject(ball_name, position, velocity, ZERO_ROTATION, (integer)llVecMag(velocity_max));  
     ball_speed = 0;
 
     llMessageLinked(LINK_ROOT, 0, "ball thrown", NULL_KEY);
@@ -301,8 +302,8 @@ state controls
         if(ball_speedflip == 1)
         {
             ball_speed += ball_speedincrement;
-            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos += .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
-            if (ball_speed >= ball_speedlimit)
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos += .5/(ball_speedmax/ball_speedincrement), 0, 0>, 0.0]);
+            if (ball_speed >= ball_speedmax)
             {
                 ball_speedflip = 2;
             }
@@ -310,7 +311,7 @@ state controls
         else if (ball_speedflip == 2)
         {
             ball_speed -= ball_speedincrement;
-            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos -= .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos -= .5/(ball_speedmax/ball_speedincrement), 0, 0>, 0.0]);
             if (ball_speed <= 0)
             {
                 ball_speedflip = 1;

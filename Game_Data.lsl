@@ -40,7 +40,7 @@ integer scratch_link;
 string scratch_name = "scratch";
 
 //hole settings
-list hole_links;
+list hole_links = [];
 integer hole_count = 8;
 string hole_name = "hole";
 
@@ -59,6 +59,13 @@ list digital_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69
 //list player_highscores;
 //list player_names;
 
+//sound settings
+float sound_offset = 10;
+float skeeball_paysound_vol = .5;
+key skeeball_paysound = "3a8add53-8813-33db-3dac-ad60918b9020";
+float skeeball_fanhumsound_vol = .14;
+key skeeball_fanhumsound = "0b9b5a63-2630-f331-8e61-bc39496983c6";
+
 new_game()
 {
     //clear score
@@ -66,7 +73,6 @@ new_game()
     llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
 
     //clear ball count
-    ballcount = 0;
     llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 
     llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
@@ -189,6 +195,11 @@ default
 {
     state_entry()
     {
+        //sound settings
+        llStopSound();
+        llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
+
+        //link numbers
         scoreboard_scorelink = Name2LinkNum(scoreboard_scorename);
         scoreboard_ballcountlink = Name2LinkNum(scoreboard_ballcountname);
         scratch_link = Name2LinkNum(scratch_name);
@@ -242,10 +253,12 @@ default
     {
         if (perm & PERMISSION_DEBIT)
         {
+            llMessageLinked(LINK_THIS, 0, "Ambient On", NULL_KEY);
             state pay;
         }
         else 
         {
+            llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
             state default;
         }
     }
@@ -268,9 +281,14 @@ state pay
         {
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
             player = id;
-            llMessageLinked(LINK_ROOT, 0, "new game", id);
-            state play;
+            llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + (<sound_offset, sound_offset,0>* llGetRot()), llGetPos() + (<-sound_offset, -sound_offset,0> * llGetRot())); //skeeball new game music
+            llSetTimerEvent(4.51);
         }
+    }
+    timer()
+    {
+        llMessageLinked(LINK_ROOT, 0, "new game", player);
+        state play;
     }
 }
 
@@ -363,6 +381,7 @@ state gameover
 {
     state_entry()
     {
+        llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
         llSetScriptState("Player_Controls", FALSE);
         llSetTimerEvent(.5);
         llRegionSayTo(player, 0, "Game over! You have scored " + (string)score + " points.");
@@ -383,7 +402,8 @@ state gameover
         llSetScriptState("Player_Controls", TRUE);
         llResetOtherScript("Player_Controls");
 
-        //Reset ball gutter
+        //Reset balls
+        ball_count = 0;
         ballcount_thrown = ballcount_limit;
         ballgutter_set();
     }
