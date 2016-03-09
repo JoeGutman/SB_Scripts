@@ -61,14 +61,16 @@ list digital_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69
 
 //sound settings
 float sound_offset = 10;
-float skeeball_paysound_vol = .5;
+float skeeball_paysound_vol = .75;
 key skeeball_paysound = "3a8add53-8813-33db-3dac-ad60918b9020";
 float skeeball_fanhumsound_vol = .14;
 key skeeball_fanhumsound = "0b9b5a63-2630-f331-8e61-bc39496983c6";
 float skeeball_ballstoppersound_vol = .75;
 list skeeball_ballstoppersound = ["96a61f55-408d-7ce5-2479-e19755fc829e", "65382cd1-6ec5-1e57-1c32-fe59728fd17b", "ea84e4b8-50d1-e5bd-1ce9-c4dfee731928", "ade43a87-a676-c1e0-bd08-b7a137bc2784"];
-float skeeball_quitbutton_vol = .75;
+float skeeball_quitbuttonsound_vol = .75;
 key skeeball_quitbuttonsound = "ac0c1b6d-2367-0674-df50-cd50c6bd6ac0";
+float skeeball_gameoversound_vol = .75;
+key skeeball_gameoversound = "59aea8e3-252a-be30-c691-826f5bca082e";
 
 new_game()
 {
@@ -298,7 +300,7 @@ state pay
     {
         if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player)
         {
-            llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbutton_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
+            llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbuttonsound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             if (ballcount <= 0)
             {
                 llGiveMoney(player, price);
@@ -319,7 +321,7 @@ state play
     {
         if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player)
         {
-            llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbutton_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
+            llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbuttonsound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             if (ballcount <= 0)
             {
                 llGiveMoney(player, price);
@@ -430,6 +432,7 @@ state gameover
             if (llList2Integer(llGetLinkPrimitiveParams(scoreboard_scorelink, [PRIM_FULLBRIGHT, ALL_SIDES]), 0) == TRUE)
             {
                 llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_GLOW, ALL_SIDES, 0.00, PRIM_FULLBRIGHT, ALL_SIDES, FALSE]);
+                llTriggerSoundLimited(skeeball_gameoversound, skeeball_gameoversound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             }
             else
             {
@@ -440,6 +443,7 @@ state gameover
         else
         {
             llSetTimerEvent(0);
+            scoreboard_flash = 0;
             state pay;
         }
     }
