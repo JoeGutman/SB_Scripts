@@ -74,10 +74,13 @@ ball_roll()
     vector velocity_max = (ball_mass * ball_speedmax * ball_direction)*(llGetRot()*arrow_rot);
     vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
 
-    llRezObject(ball_name, position, velocity, ZERO_ROTATION, (integer)llVecMag(velocity_max));  
+    llMessageLinked(LINK_THIS, 0, llList2CSV([position, velocity, (integer)llVecMag(velocity_max)]), llGetInventoryKey(ball_name));
+    llOwnerSay("ball thrown");
+    //llRezObject(ball_name, position, velocity, ZERO_ROTATION, (integer)llVecMag(velocity_max));  
     ball_speed = 0;
 
     llMessageLinked(LINK_ROOT, 0, "ball thrown", NULL_KEY);
+    llSetTimerEvent(0);
 }
 
 aim_move()
@@ -86,12 +89,13 @@ aim_move()
     arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)-arrow_rotoffset>*DEG_TO_RAD);
     arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
-
-    arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
-    llSetLinkPrimitiveParamsFast(guide_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
+    llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, arrow_pos]);
     llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, arrow_pos]);
 
-    vector ray_start = llGetPos() + ((arrow_pos + < 0, 0, .05>) * llGetRot()); //arrows adjusted position based on root rotation.
+    arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
+    llSetLinkPrimitiveParamsFast(guide_link, [PRIM_ROT_LOCAL, arrow_rot]);
+
+    /*vector ray_start = llGetPos() + ((arrow_pos + < 0, 0, .05>) * llGetRot()); //arrows adjusted position based on root rotation.
     vector ray_end = ray_start + (< 0, 2.5, .05>*(arrow_rot*llGetRot()));
 
     //llRezObject("ray_indicator", ray_start, ZERO_VECTOR, ZERO_ROTATION, 0);
@@ -109,6 +113,7 @@ aim_move()
     {
         llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, guide_maxlength, guide_scale.z>]);     
     }
+    */
 }
 
 aimmode_set()

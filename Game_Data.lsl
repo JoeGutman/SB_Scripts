@@ -65,6 +65,8 @@ float skeeball_paysound_vol = .5;
 key skeeball_paysound = "3a8add53-8813-33db-3dac-ad60918b9020";
 float skeeball_fanhumsound_vol = .14;
 key skeeball_fanhumsound = "0b9b5a63-2630-f331-8e61-bc39496983c6";
+float skeeball_ballstoppersound_vol = .75;
+key skeeball_ballstoppersound = "e5f454f9-7fae-637a-baa4-23060759760b";
 
 new_game()
 {
@@ -281,7 +283,7 @@ state pay
         {
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
             player = id;
-            llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>*, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>); //skeeball new game music
+            llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>); //skeeball new game music
             llSetTimerEvent(4.51);
         }
     }
@@ -344,6 +346,7 @@ state play
                 score += llList2Integer(llGetLinkPrimitiveParams(llDetectedLinkNumber(0), [PRIM_DESC]), 0); //grab prim description of the hole which holds the assigned points and add points to score
                 scoreboard_set(); //update scoreboard to reflect new score
                 ballcount_set();
+                llTriggerSoundLimited(skeeball_ballstoppersound, skeeball_ballstoppersound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             }
         }
     }
@@ -389,20 +392,21 @@ state gameover
         player = NULL_KEY;
         llMessageLinked(LINK_ROOT, 0, "game over", NULL_KEY);
 
-        //Reset aim position      
-        llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
-        llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
-
+        //Set player controls alpha
         llSetLinkAlpha(arrow_link, 0.0, ALL_SIDES);
         llSetLinkAlpha(guide_link, 0.0, ALL_SIDES);
         llSetLinkAlpha(mode_link, 0.0, ALL_SIDES);
+
+        //Reset player control starting position     
+        llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
+        llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
+        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
 
         llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
         llSetScriptState("Player_Controls", TRUE);
         llResetOtherScript("Player_Controls");
 
-        //Reset balls
+        //Reset ball counts
         ballcount = 0;
         ballcount_thrown = ballcount_limit;
         ballgutter_set();
