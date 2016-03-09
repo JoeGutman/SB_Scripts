@@ -13,7 +13,7 @@ default
     	if (id == llGetInventoryKey(ball_name))
     	{
     		rez_settings = llCSV2List(str);
-    		//llOwnerSay(llList2CSV(rez_settings));
+    		llOwnerSay(llList2CSV(rez_settings));
 
     		vector position = llList2Vector(rez_settings, 0);	
     		vector velocity = llList2Vector(rez_settings, 1);
