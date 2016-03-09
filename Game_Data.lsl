@@ -66,7 +66,9 @@ key skeeball_paysound = "3a8add53-8813-33db-3dac-ad60918b9020";
 float skeeball_fanhumsound_vol = .14;
 key skeeball_fanhumsound = "0b9b5a63-2630-f331-8e61-bc39496983c6";
 float skeeball_ballstoppersound_vol = .75;
-key skeeball_ballstoppersound = "e5f454f9-7fae-637a-baa4-23060759760b";
+list skeeball_ballstoppersound = ["a61add49-3ef8-2886-95a8-8c0e1ed513d4", "7f517fcf-17de-bafd-332e-2f7eb3db665d", "2c65e44e-8adf-f491-f4ba-31641284efeb", "0ad1ec9b-4dd5-f6df-7991-b4325315002b"];
+float skeeball_quitbutton_vol = .75;
+key skeeball_quitbuttonsound = "ac0c1b6d-2367-0674-df50-cd50c6bd6ac0";
 
 new_game()
 {
@@ -292,6 +294,18 @@ state pay
         llMessageLinked(LINK_ROOT, 0, "new game", player);
         state play;
     }
+    touch(integer num_detected)
+    {
+        if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player)
+        {
+            llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbutton_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
+            if (ballcount <= 0)
+            {
+                llGiveMoney(player, price);
+            }
+            state gameover;
+        }
+    }
 }
 
 state play
@@ -301,19 +315,16 @@ state play
         new_game();
         llSetTimerEvent(timeout_length);
     }
-    touch_start(integer num_detected)
+    touch(integer num_detected)
     {
-        if(llDetectedLinkNumber(0) == quitbutton_link)
+        if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player)
         {
+            llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbutton_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             if (ballcount <= 0)
             {
                 llGiveMoney(player, price);
-                state gameover;
             }
-            else
-            {
-                state gameover;
-            }
+            state gameover;
         }
     }
     collision(integer num_detected)
@@ -346,7 +357,7 @@ state play
                 score += llList2Integer(llGetLinkPrimitiveParams(llDetectedLinkNumber(0), [PRIM_DESC]), 0); //grab prim description of the hole which holds the assigned points and add points to score
                 scoreboard_set(); //update scoreboard to reflect new score
                 ballcount_set();
-                llTriggerSoundLimited(skeeball_ballstoppersound, skeeball_ballstoppersound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
+                llTriggerSoundLimited(llList2Key(skeeball_ballstoppersound, (integer)llFrand(llGetListLength(skeeball_ballstoppersound))), skeeball_ballstoppersound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             }
         }
     }

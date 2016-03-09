@@ -71,7 +71,7 @@ default
         //{
         //    ball_holedropvolume = 1.0;
         //}
-        llTriggerSound(llList2Key(ball_holedropsounds, (integer)llFrand(llGetListLength(ball_holedropsounds))-1), ball_holedropvolume);
+        llTriggerSound(llList2Key(ball_holedropsounds, (integer)llFrand(llGetListLength(ball_holedropsounds))), ball_holedropvolume);
         llDie();            
     }
     timer()
