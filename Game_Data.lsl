@@ -66,7 +66,7 @@ key skeeball_paysound = "3a8add53-8813-33db-3dac-ad60918b9020";
 float skeeball_fanhumsound_vol = .14;
 key skeeball_fanhumsound = "0b9b5a63-2630-f331-8e61-bc39496983c6";
 float skeeball_ballstoppersound_vol = .75;
-list skeeball_ballstoppersound = ["a61add49-3ef8-2886-95a8-8c0e1ed513d4", "7f517fcf-17de-bafd-332e-2f7eb3db665d", "2c65e44e-8adf-f491-f4ba-31641284efeb", "0ad1ec9b-4dd5-f6df-7991-b4325315002b"];
+list skeeball_ballstoppersound = ["96a61f55-408d-7ce5-2479-e19755fc829e", "65382cd1-6ec5-1e57-1c32-fe59728fd17b", "ea84e4b8-50d1-e5bd-1ce9-c4dfee731928", "ade43a87-a676-c1e0-bd08-b7a137bc2784"];
 float skeeball_quitbutton_vol = .75;
 key skeeball_quitbuttonsound = "ac0c1b6d-2367-0674-df50-cd50c6bd6ac0";
 
