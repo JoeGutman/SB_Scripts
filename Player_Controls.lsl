@@ -75,7 +75,7 @@ ball_roll()
     vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
 
     llMessageLinked(LINK_THIS, 0, llList2CSV([position, velocity, (integer)llVecMag(velocity_max)]), llGetInventoryKey(ball_name));
-    llOwnerSay("ball thrown");
+    //llOwnerSay("ball thrown");
     //llRezObject(ball_name, position, velocity, ZERO_ROTATION, (integer)llVecMag(velocity_max));  
     ball_speed = 0;
 
@@ -95,7 +95,7 @@ aim_move()
     arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
     llSetLinkPrimitiveParamsFast(guide_link, [PRIM_ROT_LOCAL, arrow_rot]);
 
-    /*vector ray_start = llGetPos() + ((arrow_pos + < 0, 0, .05>) * llGetRot()); //arrows adjusted position based on root rotation.
+    vector ray_start = llGetPos() + ((arrow_pos + < 0, 0, .05>) * llGetRot()); //arrows adjusted position based on root rotation.
     vector ray_end = ray_start + (< 0, 2.5, .05>*(arrow_rot*llGetRot()));
 
     //llRezObject("ray_indicator", ray_start, ZERO_VECTOR, ZERO_ROTATION, 0);
@@ -113,7 +113,13 @@ aim_move()
     {
         llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, guide_maxlength, guide_scale.z>]);     
     }
-    */
+
+    //llOwnerSay((string)aim_pos);
+    if (aim_pos <= -aim_poslimit || aim_pos >= aim_poslimit)
+    {
+        //llOwnerSay("Limit Met");
+        aimmode_set();
+    }
 }
 
 aimmode_set()
@@ -180,7 +186,8 @@ default
         base_scale = llGetScale();
         arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
         guide_scale = llList2Vector(llGetLinkPrimitiveParams(guide_link, [PRIM_SIZE]), 0);
-        aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
+        aim_poslimit = llFloor(((base_scale.x - arrow_scale.y)/2)/aim_posincrement);
+        //llOwnerSay((string)aim_poslimit);
 
         ball_speedflip = 0; 
 

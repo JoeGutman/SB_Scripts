@@ -79,6 +79,9 @@ new_game()
     llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
 
     //clear ball count
+    ballcount = 0;
+    ballcount_thrown = ballcount_limit;
+    ballgutter_set();
     llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 
     llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
@@ -399,7 +402,6 @@ state gameover
     {
         llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
         llSetScriptState("Player_Controls", FALSE);
-        llSetTimerEvent(.5);
         llRegionSayTo(player, 0, "Game over! You have scored " + (string)score + " points.");
 
         player = NULL_KEY;
@@ -419,10 +421,15 @@ state gameover
         llSetScriptState("Player_Controls", TRUE);
         llResetOtherScript("Player_Controls");
 
-        //Reset ball counts
-        ballcount = 0;
-        ballcount_thrown = ballcount_limit;
-        ballgutter_set();
+        if (ballcount > 0) //trigger scoreboard flashing
+        {
+            llSetTimerEvent(.5);
+        }
+        else
+        {
+            //Reset ball counts
+            state pay;
+        }
     }
 
     timer()
