@@ -1,5 +1,7 @@
 key player;
 integer price = 1;
+float script_time;
+float remaining_time; //time left for startup sound to play all the way through
 
 //quit settings
 integer quitbutton_link;
@@ -26,7 +28,9 @@ integer message_channel;
 key object; //detected objects that have collided
 
 //ball settings
+list ball_keys;
 integer ballcount;
+integer ballcount_rezzed = 0;
 integer ballcount_thrown = 9;
 integer ballcount_limit = 9;
 string ball_name = "[BBS] Skeeball Ball";
@@ -61,6 +65,7 @@ list digital_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69
 
 //sound settings
 float sound_offset = 10;
+float skeeball_paysound_len = 4.51; //seconds
 float skeeball_paysound_vol = .75;
 key skeeball_paysound = "3a8add53-8813-33db-3dac-ad60918b9020";
 float skeeball_fanhumsound_vol = .14;
@@ -76,13 +81,13 @@ new_game()
 {
     //clear score
     score = 0;
-    llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
+    llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
 
     //clear ball count
     ballcount = 0;
     ballcount_thrown = ballcount_limit;
     ballgutter_set();
-    llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
+    llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 
     llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
     llSetLinkAlpha(guide_link, 1.0, ALL_SIDES);
@@ -291,13 +296,34 @@ state pay
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
             player = id;
             llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>); //skeeball new game music
-            llSetTimerEvent(4.51);
+            script_time = llGetTime();
+            llRezObject(ball_name, llGetPos() + (<0,0, 2.5> * llGetRot()), ZERO_VECTOR, ZERO_ROTATION, 0);  
+            ++ballcount_rezzed;
         }
     }
     timer()
     {
-        llMessageLinked(LINK_ROOT, 0, "new game", player);
         state play;
+    }
+    object_rez(key id)
+    {
+        ball_keys += id;
+        if (ballcount_rezzed < ballcount_limit)  
+        {
+            ++ballcount_rezzed;
+            //llOwnerSay((string)ballcount_rezzed);
+            llRezObject(ball_name, llGetPos() + (<0,0, 2.5> * llGetRot()), ZERO_VECTOR, ZERO_ROTATION, 0);    
+        }
+        else if (remaining_time=(llGetTime()-script_time) >= skeeball_paysound_len)
+        {
+            llMessageLinked(LINK_ROOT, 1, llList2CSV(ball_keys), player);
+            state play;
+        }
+        else 
+        {
+            llMessageLinked(LINK_ROOT, 1, llList2CSV(ball_keys), player);
+            llSetTimerEvent(skeeball_paysound_len-remaining_time);
+        }  
     }
     touch(integer num_detected)
     {
@@ -334,25 +360,17 @@ state play
     }
     collision(integer num_detected)
     {
-        if (llDetectedLinkNumber(0) == scratch_link && llKey2Name(llDetectedKey(0)) == ball_name) //check if the ball collided with a hole prim
+        if (llKey2Name(llDetectedKey(0)) == ball_name)
         {
             llSetTimerEvent(timeout_length);
-            object = llDetectedKey(0);
-            message_channel = Key2AppChan(object);
-            llSay(message_channel, "die"); //delete ball
-
-            ballcount_thrown ++;
-            ballgutter_set();
-        }
-
-        if (llListFindList(hole_links, [llDetectedLinkNumber(0)]) != -1) //check if the ball collided with a hole prim
-        {
-            llSetTimerEvent(timeout_length);
-            if (object == llDetectedKey(0)) //check for duplicate collision
+            message_channel = Key2AppChan(llDetectedKey(0));
+            if (llDetectedLinkNumber(0) == scratch_link) //check if the ball collided with a hole prim
             {
-                llSay(message_channel, "die");
+                ballcount_thrown ++;
+                ballgutter_set();
+                llSay(message_channel, "die"); //delete ball
             }
-            else if (llKey2Name(llDetectedKey(0)) == ball_name) //check if ball collided with hole
+            if (llListFindList(hole_links, [llDetectedLinkNumber(0)]) != -1) //check if the ball collided with a hole prim
             {
                 object = llDetectedKey(0);
                 message_channel = Key2AppChan(object);
@@ -363,6 +381,7 @@ state play
                 scoreboard_set(); //update scoreboard to reflect new score
                 ballcount_set();
                 llTriggerSoundLimited(llList2Key(skeeball_ballstoppersound, (integer)llFrand(llGetListLength(skeeball_ballstoppersound))), skeeball_ballstoppersound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
+                llSay(message_channel, "die"); //delete ball
             }
         }
     }
@@ -439,7 +458,7 @@ state gameover
             if (llList2Integer(llGetLinkPrimitiveParams(scoreboard_scorelink, [PRIM_FULLBRIGHT, ALL_SIDES]), 0) == TRUE)
             {
                 llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_GLOW, ALL_SIDES, 0.00, PRIM_FULLBRIGHT, ALL_SIDES, FALSE]);
-                llTriggerSoundLimited(skeeball_gameoversound, skeeball_gameoversound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
+                //llTriggerSoundLimited(skeeball_gameoversound, skeeball_gameoversound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             }
             else
             {

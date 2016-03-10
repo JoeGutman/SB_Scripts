@@ -1,6 +1,7 @@
 integer listen_chan;
 integer say_chan;
-list rezzer_key;
+key rezzer_key;
+list rez_settings;
 float ball_life = 30; //seconds
 float velocity_max;
 float count;
@@ -53,16 +54,11 @@ default
 {
     on_rez(integer start_param)
     {
-        velocity_max = start_param;
-
-        rezzer_key = llGetObjectDetails(llGetKey(), [OBJECT_REZZER_KEY]);
-        say_chan = Key2AppChan(llList2Key(rezzer_key, 0));
+        rezzer_key = llList2Key(llGetObjectDetails(llGetKey(), [OBJECT_REZZER_KEY]), 0);
+        say_chan = Key2AppChan(rezzer_key);
         llSetLinkPrimitiveParamsFast(LINK_ALL_CHILDREN, [PRIM_PHYSICS_SHAPE_TYPE, PRIM_PHYSICS_SHAPE_NONE]);
-        llSetStatus(STATUS_PHYSICS, TRUE);
-        llSetTimerEvent(ball_life);
-
         listen_chan = Key2AppChan(llGetKey());
-        llListen( listen_chan, "", NULL_KEY, "");
+        llListen(listen_chan, "", rezzer_key, "");
     }
     listen(integer channel, string name, key id, string message)
     {
@@ -71,12 +67,27 @@ default
         //{
         //    ball_holedropvolume = 1.0;
         //}
-        llTriggerSound(llList2Key(ball_holedropsounds, (integer)llFrand(llGetListLength(ball_holedropsounds))), ball_holedropvolume);
-        llDie();            
+        if (message == "die")
+        {
+            llTriggerSound(llList2Key(ball_holedropsounds, (integer)llFrand(llGetListLength(ball_holedropsounds))), ball_holedropvolume);
+            llDie();      
+        }
+        else
+        {
+            rez_settings = llCSV2List(message);
+            //llOwnerSay(llList2CSV(rez_settings));
+
+            integer velocity_max = (integer)llList2String(rez_settings, 2);
+            llSetPos((vector)llList2String(rez_settings, 0));
+            llSetStatus(STATUS_PHYSICS, TRUE);
+            llSetLinkAlpha(LINK_SET, 1.0, ALL_SIDES);
+            llApplyImpulse((vector)llList2String(rez_settings, 1)*llGetMass(), FALSE);
+            llSetTimerEvent(ball_life);
+        }      
     }
     timer()
     {
-        llRegionSayTo(llList2Key(rezzer_key, 0), say_chan, "scratch");
+        llRegionSayTo(rezzer_key, say_chan, "scratch");
         llDie();
     }
     collision_start(integer num_detected)

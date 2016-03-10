@@ -1,5 +1,3 @@
-
-
 //player settings
 key player;
 
@@ -15,6 +13,8 @@ float aim_poslimit; // based off of arrow size and lane size
 
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
+list ball_keys;
+integer ball_current;
 integer ball_listenhandle;
 integer ball_life = 10; // parameter that will be passed to ball to tell ball how long to stay rezzed, in seconds.
 integer control_back_count = 0;
@@ -74,12 +74,13 @@ ball_roll()
     vector velocity_max = (ball_mass * ball_speedmax * ball_direction)*(llGetRot()*arrow_rot);
     vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
 
-    llMessageLinked(LINK_THIS, 0, llList2CSV([position, velocity, (integer)llVecMag(velocity_max)]), llGetInventoryKey(ball_name));
+    llRegionSayTo(rezzedball_key, Key2Chan(rezzedball_key), llList2CSV([position, velocity, (integer)llVecMag(velocity_max)]));
     //llOwnerSay("ball thrown");
     //llRezObject(ball_name, position, velocity, ZERO_ROTATION, (integer)llVecMag(velocity_max));  
     ball_speed = 0;
 
     llMessageLinked(LINK_ROOT, 0, "ball thrown", NULL_KEY);
+    llMessageLinked(LINK_ROOT, 0, "rez ball", NULL_KEY);
     llSetTimerEvent(0);
 }
 
@@ -197,9 +198,11 @@ default
     }
     link_message(integer sender_num, integer num, string str, key id)
     {
-        if (str == "new game")    
+        if (num == 1)    
         {
             player = id;
+            ball_keys = llCSV2List(str);
+            llOwnerSay(str);
             state controls;
         }
     }
@@ -227,6 +230,7 @@ state controls
                             CONTROL_LBUTTON |
                             CONTROL_ML_LBUTTON ,
                             TRUE, FALSE);
+            llMessageLinked(LINK_THIS, 0, "rez ball", NULL_KEY);  
         }   
         else
         {
@@ -308,6 +312,13 @@ state controls
                 ball_roll();
             }
         } 
+    }
+    link_message(integer sender_num, integer num, string str, key id)
+    {
+        if (str == "rezzed")
+        {
+            rezzedball_key = id;
+        }
     }
     timer()
     {
