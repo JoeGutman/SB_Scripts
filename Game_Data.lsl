@@ -40,7 +40,7 @@ integer scratch_link;
 string scratch_name = "scratch";
 
 //hole settings
-list hole_links;
+list hole_links = [];
 integer hole_count = 8;
 string hole_name = "hole";
 
@@ -59,6 +59,19 @@ list digital_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69
 //list player_highscores;
 //list player_names;
 
+//sound settings
+float sound_offset = 10;
+float skeeball_paysound_vol = .75;
+key skeeball_paysound = "3a8add53-8813-33db-3dac-ad60918b9020";
+float skeeball_fanhumsound_vol = .14;
+key skeeball_fanhumsound = "0b9b5a63-2630-f331-8e61-bc39496983c6";
+float skeeball_ballstoppersound_vol = .75;
+list skeeball_ballstoppersound = ["96a61f55-408d-7ce5-2479-e19755fc829e", "65382cd1-6ec5-1e57-1c32-fe59728fd17b", "ea84e4b8-50d1-e5bd-1ce9-c4dfee731928", "ade43a87-a676-c1e0-bd08-b7a137bc2784"];
+float skeeball_quitbuttonsound_vol = .75;
+key skeeball_quitbuttonsound = "ac0c1b6d-2367-0674-df50-cd50c6bd6ac0";
+float skeeball_gameoversound_vol = .75;
+key skeeball_gameoversound = "59aea8e3-252a-be30-c691-826f5bca082e";
+
 new_game()
 {
     //clear score
@@ -67,6 +80,8 @@ new_game()
 
     //clear ball count
     ballcount = 0;
+    ballcount_thrown = ballcount_limit;
+    ballgutter_set();
     llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 0), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 
     llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
@@ -189,6 +204,11 @@ default
 {
     state_entry()
     {
+        //sound settings
+        llStopSound();
+        llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
+
+        //link numbers
         scoreboard_scorelink = Name2LinkNum(scoreboard_scorename);
         scoreboard_ballcountlink = Name2LinkNum(scoreboard_ballcountname);
         scratch_link = Name2LinkNum(scratch_name);
@@ -242,10 +262,12 @@ default
     {
         if (perm & PERMISSION_DEBIT)
         {
+            llMessageLinked(LINK_THIS, 0, "Ambient On", NULL_KEY);
             state pay;
         }
         else 
         {
+            llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
             state default;
         }
     }
@@ -268,8 +290,25 @@ state pay
         {
             llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
             player = id;
-            llMessageLinked(LINK_ROOT, 0, "new game", id);
-            state play;
+            llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>); //skeeball new game music
+            llSetTimerEvent(4.51);
+        }
+    }
+    timer()
+    {
+        llMessageLinked(LINK_ROOT, 0, "new game", player);
+        state play;
+    }
+    touch(integer num_detected)
+    {
+        if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player)
+        {
+            llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbuttonsound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
+            if (ballcount <= 0)
+            {
+                llGiveMoney(player, price);
+            }
+            state gameover;
         }
     }
 }
@@ -281,19 +320,16 @@ state play
         new_game();
         llSetTimerEvent(timeout_length);
     }
-    touch_start(integer num_detected)
+    touch(integer num_detected)
     {
-        if(llDetectedLinkNumber(0) == quitbutton_link)
+        if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player)
         {
+            llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbuttonsound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             if (ballcount <= 0)
             {
                 llGiveMoney(player, price);
-                state gameover;
             }
-            else
-            {
-                state gameover;
-            }
+            state gameover;
         }
     }
     collision(integer num_detected)
@@ -326,6 +362,7 @@ state play
                 score += llList2Integer(llGetLinkPrimitiveParams(llDetectedLinkNumber(0), [PRIM_DESC]), 0); //grab prim description of the hole which holds the assigned points and add points to score
                 scoreboard_set(); //update scoreboard to reflect new score
                 ballcount_set();
+                llTriggerSoundLimited(llList2Key(skeeball_ballstoppersound, (integer)llFrand(llGetListLength(skeeball_ballstoppersound))), skeeball_ballstoppersound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             }
         }
     }
@@ -363,29 +400,36 @@ state gameover
 {
     state_entry()
     {
+        llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
         llSetScriptState("Player_Controls", FALSE);
-        llSetTimerEvent(.5);
         llRegionSayTo(player, 0, "Game over! You have scored " + (string)score + " points.");
 
         player = NULL_KEY;
         llMessageLinked(LINK_ROOT, 0, "game over", NULL_KEY);
 
-        //Reset aim position      
-        llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
-        llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
-        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
-
+        //Set player controls alpha
         llSetLinkAlpha(arrow_link, 0.0, ALL_SIDES);
         llSetLinkAlpha(guide_link, 0.0, ALL_SIDES);
         llSetLinkAlpha(mode_link, 0.0, ALL_SIDES);
+
+        //Reset player control starting position     
+        llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, llEuler2Rot((<0, 0, -arrow_rotoffset>*DEG_TO_RAD)), PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0, PRIM_COLOR, 0, < 1, 1, 1>, 0.0]);
+        llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_ROT_LOCAL, ZERO_ROTATION, PRIM_SIZE, < guide_scale.x, 5, guide_scale.z>]);
+        llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, <0, arrow_startpos.y, arrow_startpos.z>, PRIM_TYPE, PRIM_TYPE_BOX, 0, <0.0, 1.0, 0.0>, 0.0, <0.0, 0.0, 0.0>, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>]);     
 
         llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <0, 0, 0>, 0.0]);
         llSetScriptState("Player_Controls", TRUE);
         llResetOtherScript("Player_Controls");
 
-        //Reset ball gutter
-        ballcount_thrown = ballcount_limit;
-        ballgutter_set();
+        if (ballcount > 0) //trigger scoreboard flashing
+        {
+            llSetTimerEvent(.5);
+        }
+        else
+        {
+            //Reset ball counts
+            state pay;
+        }
     }
 
     timer()
@@ -395,6 +439,7 @@ state gameover
             if (llList2Integer(llGetLinkPrimitiveParams(scoreboard_scorelink, [PRIM_FULLBRIGHT, ALL_SIDES]), 0) == TRUE)
             {
                 llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_GLOW, ALL_SIDES, 0.00, PRIM_FULLBRIGHT, ALL_SIDES, FALSE]);
+                llTriggerSoundLimited(skeeball_gameoversound, skeeball_gameoversound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             }
             else
             {
@@ -405,6 +450,7 @@ state gameover
         else
         {
             llSetTimerEvent(0);
+            scoreboard_flash = 0;
             state pay;
         }
     }

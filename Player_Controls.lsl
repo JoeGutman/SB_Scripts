@@ -21,7 +21,7 @@ integer control_back_count = 0;
 integer control_fwd_count = 0;
 float ball_speed = 0; 
 float ball_speedincrement = .25;
-float ball_speedlimit = 12;
+float ball_speedmax = 12;
 float ball_speedflip = 0; //0 = inactive, 1 = active not flipped, 2 = active flipped.
 float ball_mass = 1.25;
 vector ball_rezpos = < 0, 0, .1>; // The distance to adjust the ball rez position from the aim arrow. 
@@ -71,12 +71,16 @@ ball_roll()
     arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
 
     vector velocity = (ball_mass * ball_speed * ball_direction)*(llGetRot()*arrow_rot);
+    vector velocity_max = (ball_mass * ball_speedmax * ball_direction)*(llGetRot()*arrow_rot);
     vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
 
-    llRezObject(ball_name, position, velocity, ZERO_ROTATION, ball_life);  
+    llMessageLinked(LINK_THIS, 0, llList2CSV([position, velocity, (integer)llVecMag(velocity_max)]), llGetInventoryKey(ball_name));
+    //llOwnerSay("ball thrown");
+    //llRezObject(ball_name, position, velocity, ZERO_ROTATION, (integer)llVecMag(velocity_max));  
     ball_speed = 0;
 
     llMessageLinked(LINK_ROOT, 0, "ball thrown", NULL_KEY);
+    llSetTimerEvent(0);
 }
 
 aim_move()
@@ -85,10 +89,11 @@ aim_move()
     arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)-arrow_rotoffset>*DEG_TO_RAD);
     arrow_pos = < (aim_pos*aim_posincrement), arrow_startpos.y, arrow_startpos.z>;
     llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
+    llSetLinkPrimitiveParamsFast(guide_link, [PRIM_POS_LOCAL, arrow_pos]);
+    llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, arrow_pos]);
 
     arrow_rot = llEuler2Rot(<0,0,(aim_rot*aim_rotincrement)>*DEG_TO_RAD);
-    llSetLinkPrimitiveParamsFast(guide_link, [PRIM_ROT_LOCAL, arrow_rot, PRIM_POS_LOCAL, arrow_pos]);
-    llSetLinkPrimitiveParamsFast(mode_link, [PRIM_POS_LOCAL, arrow_pos]);
+    llSetLinkPrimitiveParamsFast(guide_link, [PRIM_ROT_LOCAL, arrow_rot]);
 
     vector ray_start = llGetPos() + ((arrow_pos + < 0, 0, .05>) * llGetRot()); //arrows adjusted position based on root rotation.
     vector ray_end = ray_start + (< 0, 2.5, .05>*(arrow_rot*llGetRot()));
@@ -107,6 +112,13 @@ aim_move()
     else
     {
         llSetLinkPrimitiveParamsFast(guide_link, [PRIM_SIZE, <guide_scale.x, guide_maxlength, guide_scale.z>]);     
+    }
+
+    //llOwnerSay((string)aim_pos);
+    if (aim_pos <= -aim_poslimit || aim_pos >= aim_poslimit)
+    {
+        //llOwnerSay("Limit Met");
+        aimmode_set();
     }
 }
 
@@ -174,7 +186,8 @@ default
         base_scale = llGetScale();
         arrow_scale = llList2Vector(llGetLinkPrimitiveParams(arrow_link, [PRIM_SIZE]), 0);
         guide_scale = llList2Vector(llGetLinkPrimitiveParams(guide_link, [PRIM_SIZE]), 0);
-        aim_poslimit = ((base_scale.x - arrow_scale.x)/2)/aim_posincrement;
+        aim_poslimit = llFloor(((base_scale.x - arrow_scale.y)/2)/aim_posincrement);
+        //llOwnerSay((string)aim_poslimit);
 
         ball_speedflip = 0; 
 
@@ -301,8 +314,8 @@ state controls
         if(ball_speedflip == 1)
         {
             ball_speed += ball_speedincrement;
-            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos += .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
-            if (ball_speed >= ball_speedlimit)
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos += .5/(ball_speedmax/ball_speedincrement), 0, 0>, 0.0]);
+            if (ball_speed >= ball_speedmax)
             {
                 ball_speedflip = 2;
             }
@@ -310,7 +323,7 @@ state controls
         else if (ball_speedflip == 2)
         {
             ball_speed -= ball_speedincrement;
-            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos -= .5/(ball_speedlimit/ball_speedincrement), 0, 0>, 0.0]);
+            llSetLinkPrimitiveParamsFast(arrow_link, [PRIM_TEXTURE,  0, arrow_texture, <1, 1, 0>, <arrow_currenttextpos -= .5/(ball_speedmax/ball_speedincrement), 0, 0>, 0.0]);
             if (ball_speed <= 0)
             {
                 ball_speedflip = 1;
