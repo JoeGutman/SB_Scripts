@@ -123,6 +123,7 @@ ballcount_set()
 
 ballgutter_set()
 {
+    llOwnerSay((string)ballcount_thrown);
     if (ballcount_thrown <= 0)
     {
         llSetScriptState("Player_Controls", FALSE);
@@ -193,6 +194,13 @@ ballgutter_set()
     }
 }*/
 
+list ListItemDelete(list mylist,string element_old) {
+    integer placeinlist = llListFindList(mylist, [element_old]);
+    if (placeinlist != -1)
+        return llDeleteSubList(mylist, placeinlist, placeinlist);
+    return mylist;
+}
+
 integer Name2LinkNum(string sName)
 {
     integer i;
@@ -215,7 +223,7 @@ default
         llRegionSay(Key2AppChan(llGetKey()), "reset");
         //sound settings
         llStopSound();
-        llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
+        llMessageLinked(LINK_THIS, 0, "Ambient Sounds Off", NULL_KEY);
 
         //link numbers
         scoreboard_scorelink = Name2LinkNum(scoreboard_scorename);
@@ -271,12 +279,12 @@ default
     {
         if (perm & PERMISSION_DEBIT)
         {
-            llMessageLinked(LINK_THIS, 0, "Ambient On", NULL_KEY);
+            llMessageLinked(LINK_THIS, 0, "Ambient Sounds On", NULL_KEY);
             state pay;
         }
         else 
         {
-            llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
+            llMessageLinked(LINK_THIS, 0, "Ambient Sounds Off", NULL_KEY);
             state default;
         }
     }
@@ -306,17 +314,17 @@ state pay
     }
     timer()
     {
-        llOwnerSay("state play");
+        //llOwnerSay("state play");
         state play;
     }
     object_rez(key id)
     {
         ball_keys += id;
         remaining_time = skeeball_paysound_len - (llGetTime() - script_time);
-        llOwnerSay((string)remaining_time);
+        //llOwnerSay((string)remaining_time);
         if (llGetListLength(ball_keys) < ballcount_limit)  
         {
-            llOwnerSay((string)llGetListLength(ball_keys));
+            //llOwnerSay((string)llGetListLength(ball_keys));
             llRezObject(ball_name, llGetPos() + (<0,0, 2.5> * llGetRot()), ZERO_VECTOR, ZERO_ROTATION, 0);    
         }
         else if (remaining_time <= 0)
@@ -347,6 +355,7 @@ state play
 {
     state_entry()
     {
+        //llOwnerSay(llList2CSV(ball_keys));
         new_game();
         llSetTimerEvent(timeout_length);
     }
@@ -364,32 +373,31 @@ state play
     }
     collision(integer num_detected)
     {
-        if (llKey2Name(llDetectedKey(0)) == ball_name && llListFindList(ball_keys, [llDetectedKey(0)]))
+        if (llKey2Name(llDetectedKey(0)) == ball_name && llListFindList(ball_keys, [llDetectedKey(0)]) > -1)
         {
             llSetTimerEvent(timeout_length);
-            message_channel = Key2AppChan(llDetectedKey(0));
             if (llListFindList(balls_scoredkeys, [llDetectedKey(0)]) == -1)
             {
                 if (llDetectedLinkNumber(0) == scratch_link) //check if the ball collided with a hole prim
                 {
-                    ballcount_thrown ++;
-                    ballgutter_set();
-                    llSay(message_channel, "scratch"); //reset ball
+                    balls_scoredkeys += llDetectedKey(0);
+                    llSay(Key2AppChan(llDetectedKey(0)), "scratch"); //reset ball
                     llMessageLinked(LINK_THIS, 2, "scratch", NULL_KEY);
+                    //llOwnerSay("scratch");
                 }
                 if (llListFindList(hole_links, [llDetectedLinkNumber(0)]) != -1) //check if the ball collided with a hole prim
                 {
                     balls_scoredkeys += llDetectedKey(0);
-                    message_channel = Key2AppChan(object);
-                    llSay(message_channel, "die"); //delete ball
+                    llSay(Key2AppChan(llDetectedKey(0)), "die"); //delete ball
 
                     ballcount ++; //add to ballcount when a proper collision is detected
                     score += llList2Integer(llGetLinkPrimitiveParams(llDetectedLinkNumber(0), [PRIM_DESC]), 0); //grab prim description of the hole which holds the assigned points and add points to score
                     scoreboard_set(); //update scoreboard to reflect new score
                     ballcount_set();
                     llTriggerSoundLimited(llList2Key(skeeball_ballstoppersound, (integer)llFrand(llGetListLength(skeeball_ballstoppersound))), skeeball_ballstoppersound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
-                    llSay(message_channel, "die"); //delete ball
+                    //llOwnerSay("die");
                 }
+                llOwnerSay(llList2CSV(balls_scoredkeys));
             }
         }
     }
@@ -411,8 +419,14 @@ state play
     }
     listen(integer channel, string name, key id, string message)
     {
-        if (message == "scratch")
+        if (llSubStringIndex( message, "scratch" ) != -1)
         {
+            list message_list = llParseString2List(message, [" "], []);
+            //llOwnerSay("scratch_message");
+            list old_list = balls_scoredkeys;
+            balls_scoredkeys = llDeleteSubList(old_list, llListFindList(old_list, (key)llList2String(message_list, 1), llList2String(message_list, 1));
+            llOwnerSay(llList2CSV(balls_scoredkeys));
+            llOwnerSay(llList2CSV(message_list));
             ballcount_thrown ++;
             ballgutter_set();    
         }   

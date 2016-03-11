@@ -76,6 +76,7 @@ ball_roll()
 
     llRegionSayTo((key)llList2String(ball_keys, ball_current), Key2Chan((key)llList2String(ball_keys, ball_current)), llList2CSV([position, velocity, (integer)llVecMag(velocity_max)]));
     ++ball_current;
+    llOwnerSay((string)ball_current);
     //llOwnerSay("ball thrown");
     //llRezObject(ball_name, position, velocity, ZERO_ROTATION, (integer)llVecMag(velocity_max));  
     ball_speed = 0;
@@ -203,12 +204,8 @@ default
         {
             player = id;
             ball_keys = llCSV2List(str);
-            llOwnerSay(str);
+            //llOwnerSay(str);
             state controls;
-        }
-        if (num = 2)
-        {
-            --ball_current;
         }
     }
 }
@@ -317,6 +314,14 @@ state controls
                 ball_roll();
             }
         } 
+    }
+    link_message(integer sender_num, integer num, string str, key id)
+    {
+        if (num = 2 && str == "scratch")
+        {
+            --ball_current;
+            llOwnerSay((string)ball_current);
+        }       
     }
     timer()
     {

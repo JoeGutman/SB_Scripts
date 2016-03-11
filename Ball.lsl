@@ -1,14 +1,15 @@
-integer listen_handle;
-integer unique_listen_handle;
 integer say_chan;
+integer ball_channel;
+integer rezzer_channel;
 key rezzer_key;
 list rez_settings;
-float ball_life = 30; //seconds
+float ball_life = 20; //seconds
 float velocity_max;
 float count;
 float timer_increment = .5;
 integer collision_track = FALSE;
 vector rez_pos;
+integer timeout_scratch = FALSE;
 
 
 //Sound Settings
@@ -60,8 +61,10 @@ default
         rez_pos = llGetPos();
         say_chan = Key2AppChan(rezzer_key);
         llSetLinkPrimitiveParamsFast(LINK_ALL_CHILDREN, [PRIM_PHYSICS_SHAPE_TYPE, PRIM_PHYSICS_SHAPE_NONE]);
-        unique_listen_handle = llListen(Key2AppChan(llGetKey()), "", rezzer_key, "");
-        listen_handle = llListen(Key2AppChan(rezzer_key), "", rezzer_key, "");
+        ball_channel = Key2AppChan(llGetKey());
+        rezzer_channel = Key2AppChan(rezzer_key);
+        llListen(ball_channel, "", rezzer_key, "");
+        llListen(rezzer_channel, "", NULL_KEY, "");
     }
     listen(integer channel, string name, key id, string message)
     {
@@ -70,6 +73,7 @@ default
         //{
         //    ball_holedropvolume = 1.0;
         //}
+        //llOwnerSay(message);
         if (message == "reset")
         {
             llDie();
@@ -81,11 +85,14 @@ default
         }
         else if (message == "scratch")
         {
+            timeout_scratch = FALSE;
+            llSetTimerEvent(0);
             llSetLinkAlpha(LINK_SET, 0.0, ALL_SIDES);
             llSetStatus(STATUS_PHYSICS, FALSE);
-            llSetPos(rez_pos);    
+            llSetPos(rez_pos);   
+            llRegionSayTo(rezzer_key, say_chan, "scratch" + " " + (string)llGetKey()); 
         }
-        else if (message == "gameover" && llList2Integer(llGetPrimitiveParams([ PRIM_PHYSICS ]),0) == FALSE)
+        else if (message == "gameover")
         {
             llDie();
         }
@@ -99,13 +106,19 @@ default
             llSetStatus(STATUS_PHYSICS, TRUE);
             llSetLinkAlpha(LINK_SET, 1.0, ALL_SIDES);
             llApplyImpulse((vector)llList2String(rez_settings, 1)*llGetMass(), FALSE);
+            timeout_scratch = TRUE;
             llSetTimerEvent(ball_life);
         }      
     }
     timer()
     {
-        llRegionSayTo(rezzer_key, say_chan, "scratch");
-        llDie();
+        if (timeout_scratch == TRUE)
+        {
+            llRegionSayTo(rezzer_key, say_chan, "scratch");
+            llSetLinkAlpha(LINK_SET, 0.0, ALL_SIDES);
+            llSetStatus(STATUS_PHYSICS, FALSE);
+            llSetPos(rez_pos); 
+        }
     }
     collision_start(integer num_detected)
     {
