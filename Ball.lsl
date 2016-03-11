@@ -1,4 +1,5 @@
-integer listen_chan;
+integer listen_handle;
+integer unique_listen_handle;
 integer say_chan;
 key rezzer_key;
 list rez_settings;
@@ -7,6 +8,7 @@ float velocity_max;
 float count;
 float timer_increment = .5;
 integer collision_track = FALSE;
+vector rez_pos;
 
 
 //Sound Settings
@@ -55,10 +57,11 @@ default
     on_rez(integer start_param)
     {
         rezzer_key = llList2Key(llGetObjectDetails(llGetKey(), [OBJECT_REZZER_KEY]), 0);
+        rez_pos = llGetPos();
         say_chan = Key2AppChan(rezzer_key);
         llSetLinkPrimitiveParamsFast(LINK_ALL_CHILDREN, [PRIM_PHYSICS_SHAPE_TYPE, PRIM_PHYSICS_SHAPE_NONE]);
-        listen_chan = Key2AppChan(llGetKey());
-        llListen(listen_chan, "", rezzer_key, "");
+        unique_listen_handle = llListen(Key2AppChan(llGetKey()), "", rezzer_key, "");
+        listen_handle = llListen(Key2AppChan(rezzer_key), "", rezzer_key, "");
     }
     listen(integer channel, string name, key id, string message)
     {
@@ -67,12 +70,26 @@ default
         //{
         //    ball_holedropvolume = 1.0;
         //}
-        if (message == "die")
+        if (message == "reset")
+        {
+            llDie();
+        }
+        else if (message == "die")
         {
             llTriggerSound(llList2Key(ball_holedropsounds, (integer)llFrand(llGetListLength(ball_holedropsounds))), ball_holedropvolume);
             llDie();      
         }
-        else
+        else if (message == "scratch")
+        {
+            llSetLinkAlpha(LINK_SET, 0.0, ALL_SIDES);
+            llSetStatus(STATUS_PHYSICS, FALSE);
+            llSetPos(rez_pos);    
+        }
+        else if (message == "gameover" && llList2Integer(llGetPrimitiveParams([ PRIM_PHYSICS ]),0) == FALSE)
+        {
+            llDie();
+        }
+        else if (llGetListLength(llCSV2List(message)) == 3)
         {
             rez_settings = llCSV2List(message);
             //llOwnerSay(llList2CSV(rez_settings));

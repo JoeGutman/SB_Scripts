@@ -14,7 +14,7 @@ float aim_poslimit; // based off of arrow size and lane size
 //ball settings
 string ball_name = "[BBS] Skeeball Ball";
 list ball_keys;
-integer ball_current;
+integer ball_current = 0;
 integer ball_listenhandle;
 integer ball_life = 10; // parameter that will be passed to ball to tell ball how long to stay rezzed, in seconds.
 integer control_back_count = 0;
@@ -74,7 +74,8 @@ ball_roll()
     vector velocity_max = (ball_mass * ball_speedmax * ball_direction)*(llGetRot()*arrow_rot);
     vector position = llGetPos() + ((arrow_pos + ball_rezpos) * llGetRot());
 
-    llRegionSayTo(rezzedball_key, Key2Chan(rezzedball_key), llList2CSV([position, velocity, (integer)llVecMag(velocity_max)]));
+    llRegionSayTo((key)llList2String(ball_keys, ball_current), Key2Chan((key)llList2String(ball_keys, ball_current)), llList2CSV([position, velocity, (integer)llVecMag(velocity_max)]));
+    ++ball_current;
     //llOwnerSay("ball thrown");
     //llRezObject(ball_name, position, velocity, ZERO_ROTATION, (integer)llVecMag(velocity_max));  
     ball_speed = 0;
@@ -205,6 +206,10 @@ default
             llOwnerSay(str);
             state controls;
         }
+        if (num = 2)
+        {
+            --ball_current;
+        }
     }
 }
 
@@ -312,13 +317,6 @@ state controls
                 ball_roll();
             }
         } 
-    }
-    link_message(integer sender_num, integer num, string str, key id)
-    {
-        if (str == "rezzed")
-        {
-            rezzedball_key = id;
-        }
     }
     timer()
     {
