@@ -2,12 +2,13 @@ key player;
 integer price = 1;
 float script_time;
 float remaining_time; //time left for startup sound to play all the way through
+string newgame_message = "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.";
 
 //quit settings
 integer quitbutton_link;
 string quit_name = "quit";
 string gameover_message = "The game has ended!";
-integer timeout_length = 300; //length, in seconds the game can be inactive before restarting.
+integer timeout_length = 180; //length, in seconds the game can be inactive before restarting.
 
 //aim settings
 integer arrow_link;
@@ -87,6 +88,8 @@ new_game()
     ballcount = 0;
     ballcount_thrown = ballcount_limit;
     ballgutter_set();
+    ball_keys = [];
+    balls_scoredkeys = [];
     llSetLinkPrimitiveParamsFast(scoreboard_ballcountlink, [PRIM_TEXTURE, 3, llList2Key(digital_numbers, 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0]);
 
     llSetLinkAlpha(arrow_link, 1.0, ALL_SIDES);
@@ -123,7 +126,7 @@ ballcount_set()
 
 ballgutter_set()
 {
-    llOwnerSay((string)ballcount_thrown);
+    //llOwnerSay((string)ballcount_thrown);
     if (ballcount_thrown <= 0)
     {
         llSetScriptState("Player_Controls", FALSE);
@@ -305,7 +308,7 @@ state pay
         }
         else if (amount == price)    
         {
-            llRegionSayTo(id, 0, "Thank you for paying. Your game will start shortly. Quit the game before taking a turn to be refunded.");
+            llRegionSayTo(id, 0, newgame_message);
             player = id;
             llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>); //skeeball new game music
             script_time = llGetTime();
@@ -397,7 +400,7 @@ state play
                     llTriggerSoundLimited(llList2Key(skeeball_ballstoppersound, (integer)llFrand(llGetListLength(skeeball_ballstoppersound))), skeeball_ballstoppersound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
                     //llOwnerSay("die");
                 }
-                llOwnerSay(llList2CSV(balls_scoredkeys));
+                //llOwnerSay(llList2CSV(balls_scoredkeys));
             }
         }
     }
@@ -424,15 +427,16 @@ state play
             list message_list = llParseString2List(message, [" "], []);
             //llOwnerSay("scratch_message");
             list old_list = balls_scoredkeys;
-            balls_scoredkeys = llDeleteSubList(old_list, llListFindList(old_list, (key)llList2String(message_list, 1), llList2String(message_list, 1));
-            llOwnerSay(llList2CSV(balls_scoredkeys));
-            llOwnerSay(llList2CSV(message_list));
+            balls_scoredkeys = llDeleteSubList(old_list, llListFindList(old_list, [(key)llList2String(message_list, 1)]), llListFindList(old_list, [(key)llList2String(message_list, 1)]));
+            //llOwnerSay(llList2CSV(balls_scoredkeys) + "list");
+            //llOwnerSay(llList2CSV(message_list));
             ballcount_thrown ++;
             ballgutter_set();    
         }   
     }
     timer()
     {
+        llRegionSayTo(player, 0, "Game has timed out.");
         state gameover;
     }
 }

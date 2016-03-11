@@ -118,6 +118,8 @@ default
             llSetLinkAlpha(LINK_SET, 0.0, ALL_SIDES);
             llSetStatus(STATUS_PHYSICS, FALSE);
             llSetPos(rez_pos); 
+            timeout_scratch = FALSE;
+            llSetTimerEvent(0);
         }
     }
     collision_start(integer num_detected)

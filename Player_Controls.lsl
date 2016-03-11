@@ -204,7 +204,7 @@ default
         {
             player = id;
             ball_keys = llCSV2List(str);
-            //llOwnerSay(str);
+            llOwnerSay(str);
             state controls;
         }
     }
@@ -320,7 +320,7 @@ state controls
         if (num = 2 && str == "scratch")
         {
             --ball_current;
-            llOwnerSay((string)ball_current);
+            //llOwnerSay((string)ball_current);
         }       
     }
     timer()
