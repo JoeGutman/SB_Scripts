@@ -12,11 +12,12 @@ vector ball_diameter;
 //ball settings
 float ball_life = 20; //seconds
 float velocity_max;
-float timer_increment = 0.5;
 
 //base settings
 list hole_positions_sizes;
 integer hole_count = 8;
+vector hole_diameter;
+float hole_distance;
 
 //timer settings
 float timer_count;
@@ -31,19 +32,22 @@ list ball_hitsounds = ["a3683340-6d87-89dc-6781-c387eae66ba1", "962b8b98-5e15-f3
 float ball_holedropvolume = 0.5;
 list ball_holedropsounds = ["a3683340-6d87-89dc-6781-c387eae66ba1", "9ac1ceee-f3f8-358e-ee31-5779c2b9d7cc", "092ec2fb-f5dc-1425-2cbd-5df14328cc7b", "229dab71-153d-72f7-0720-729ebc4d4e77", "ae3adf63-94f4-f289-3b68-bb03fe5898c8", "e43fd579-260b-96a9-ecf4-4dd905f75797"];
 
-integer distance_to_hole(current_pos)
+integer distance_to_hole()
 {
-    i = 0;
+    integer i = 0;
     while (i < (llGetListLength(hole_positions_sizes)/2)-1)
     {
-        hole_distance = llVecDist(current_pos, llList2String(hole_positions_sizes, i))
-        hole_diameter = (key)llList2String(hole_positions_sizes, i + hole_count)
-        if ((ball_diameter.x + hole_diameter.x)/2 <= hole_distance)
+        hole_distance = llVecDist(llGetPos(), (vector)llList2String(hole_positions_sizes, i));
+        llOwnerSay(llList2String(hole_positions_sizes, i));
+        hole_diameter = (vector)llList2String(hole_positions_sizes, i + hole_count);
+        if ((hole_diameter.x + ball_diameter.x)/2 <= hole_distance)
         {
+            llOwnerSay("hole_min_distance = " + (string)((hole_diameter.x + ball_diameter.x)/2) + "hole_distance = " + (string)hole_distance);
             return i;
         }
         ++i;
     }
+    //llOwnerSay("hole_min_distance = " + (string)((ball_diameter.x)/2) + "hole_distance = " + (string)hole_distance);
     return (-1);
 }
 
@@ -88,12 +92,15 @@ ball_scratch()
     llSetPos(rez_pos);   
     llRegionSayTo(rezzer_key, say_chan, "scratch");
     llStopSound(); 
+    timer_count = 0;
+    llSetTimerEvent(0);
 }
 
 default
 {
     on_rez(integer start_param)
     {
+        //llOwnerSay((string)llGetKey());
         rezzer_key = llList2Key(llGetObjectDetails(llGetKey(), [OBJECT_REZZER_KEY]), 0);
         rez_pos = llGetPos();
         ball_diameter = llList2Vector(llGetPrimitiveParams([PRIM_SIZE]), 0); 
@@ -101,12 +108,29 @@ default
         ball_channel = Key2AppChan(llGetKey());
         rezzer_channel = Key2AppChan(rezzer_key);
         llSetLinkPrimitiveParamsFast(LINK_ALL_CHILDREN, [PRIM_PHYSICS_SHAPE_TYPE, PRIM_PHYSICS_SHAPE_NONE]);
-        llListen(ball_channel, "", rezzer_key, "");
+        llListen(ball_channel, "", NULL_KEY, "");
         llListen(rezzer_channel, "", NULL_KEY, "");
     }
     listen(integer channel, string name, key id, string message)
     {
-        if (message == "reset")
+        if (llSubStringIndex(message, "hole_") != -1)
+        {
+            hole_positions_sizes = llCSV2List(message);
+            //llOwnerSay(message);    
+        } 
+        else if (llGetListLength(llCSV2List(message)) == 3)
+        {
+            rez_settings = llCSV2List(message);
+            //llOwnerSay(llList2CSV(rez_settings));
+
+            integer velocity_max = (integer)llList2String(rez_settings, 2);
+            llSetPos((vector)llList2String(rez_settings, 0));
+            llSetStatus(STATUS_PHYSICS, TRUE);
+            llSetLinkAlpha(LINK_SET, 1.0, ALL_SIDES);
+            llApplyImpulse((vector)llList2String(rez_settings, 1)*llGetMass(), FALSE);
+            llSetTimerEvent(timer_increment);
+        } 
+        else if (message == "reset")
         {
             llDie();
         }
@@ -122,24 +146,7 @@ default
         else if (message == "gameover")
         {
             llDie();
-        }
-        else if (llGetListLength(llCSV2List(message)) == 3)
-        {
-            rez_settings = llCSV2List(message);
-            //llOwnerSay(llList2CSV(rez_settings));
-
-            integer velocity_max = (integer)llList2String(rez_settings, 2);
-            llSetPos((vector)llList2String(rez_settings, 0));
-            llSetStatus(STATUS_PHYSICS, TRUE);
-            llSetLinkAlpha(LINK_SET, 1.0, ALL_SIDES);
-            llApplyImpulse((vector)llList2String(rez_settings, 1)*llGetMass(), FALSE);
-            llSetTimerEvent(ball_life);
-        }
-        else if (llGetListLength(llCSV2List(message)) > 3)
-        {
-            hole_positions_sizes = llCSV2List(message)
-            llOwnerSay(llList2CSV(message));    
-        }      
+        }    
     }
     timer()
     {
@@ -150,16 +157,17 @@ default
         }
         else
         {
-            integer hole_number = distance_to_hole(llGetPos());
+            integer hole_number = distance_to_hole();
             if (hole_number != -1)
             {
-                llRegionSayTo(rezzer_key, rezzer_channel, "hole_"+(string)hole_number + " " + llGetKey());
+                llRegionSayTo(rezzer_key, rezzer_channel, "hole_"+(string)hole_number + " " + (string)llGetKey());
+                llOwnerSay("hole_"+(string)hole_number + " " + (string)llGetKey());
             }    
         }
     }
     collision_start(integer num_detected)
     {
-        if (llDetectedKey(0) != rezzer_key)
+        if (llDetectedKey(0) != rezzer_key && llKey2Name(llDetectedKey(0)) != llGetObjectName()))
         {
             ball_scratch();
         }
@@ -172,9 +180,5 @@ default
     land_collision_start( vector pos )
     {
        ball_scratch();
-    }
-    collision_end(integer num_detected)
-    {
-        llStopSound();
     }
 }

@@ -81,6 +81,15 @@ key skeeball_gameoversound = "59aea8e3-252a-be30-c691-826f5bca082e";
 
 new_game()
 {
+    //Send Balls the Hole Positions
+    integer i = 0;
+    while (i < llGetListLength(ball_keys))
+    {
+        key current_ball = llList2Key(ball_keys, i);
+        llRegionSayTo(current_ball, Key2AppChan(current_ball), llList2CSV(hole_settings));
+        ++i;
+    }   
+
     //clear score
     score = 0;
     llSetLinkPrimitiveParamsFast(scoreboard_scorelink, [PRIM_TEXTURE, ALL_SIDES, llList2Key (digital_numbers, 1), <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_COLOR, ALL_SIDES, <1.0, 1.0, 1.0>, 1.0, PRIM_GLOW,  ALL_SIDES, 0.0]);
@@ -322,7 +331,8 @@ state pay
                 ++i;  
             }
 
-            hole_settings = [hole_positions] + [hole_sizes];
+            hole_settings = hole_positions + hole_sizes;
+            llOwnerSay(llList2CSV(hole_settings));
 
             llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>); //skeeball new game music
             script_time = llGetTime();
@@ -338,7 +348,6 @@ state pay
     {
         ball_keys += id;
         remaining_time = skeeball_paysound_len - (llGetTime() - script_time);
-        llRegionSayTo(llDetectedKey(0), Key2AppChan(llDetectedKey(0)), llList2CSV(hole_settings));   
 
         if (llGetListLength(ball_keys) < ballcount_limit)  
         {
@@ -415,14 +424,22 @@ state play
                 //llOwnerSay("scratch_message");
                 //llOwnerSay(llList2CSV(balls_scoredkeys) + "list");
                 //llOwnerSay(llList2CSV(message_list));
+                llRegionSayTo((key)llList2String(message_list, 1), Key2AppChan((key)llList2String(message_list, 1)), "scratch");
                 ballcount_thrown ++;
                 ballgutter_set();   
             }
             else
             {
-                score += (integer)llGetLinkPrimitiveParams(Name2LinkNum(llList2String(message_list, 0)), [PRIM_DESC]);
+                llRegionSayTo((key)llList2String(message_list, 1), Key2AppChan((key)llList2String(message_list, 1)), "die");
+                score += (integer)llList2String(llGetLinkPrimitiveParams(llDetectedLinkNumber(0), [PRIM_DESC]), 0);;
                 scoreboard_set();
             } 
+        }
+        else if (message == "scratch")
+        {
+            llMessageLinked(LINK_THIS, 0, "scratch", NULL_KEY);
+            ballcount_thrown ++;
+            ballgutter_set();          
         }   
     }
     timer()
