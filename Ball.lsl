@@ -3,6 +3,7 @@ integer say_chan;
 integer ball_channel;
 integer rezzer_channel;
 integer message_sent = FALSE;
+integer ball_scratched = FALSE;
 
 //rez settings
 key rezzer_key;
@@ -43,8 +44,13 @@ integer distance_to_hole()
         hole_diameter = (vector)llList2String(hole_positions_sizes, i + hole_count);
         if (hole_distance <= (hole_diameter.x + ball_diameter.x)/2)
         {
-            llOwnerSay("hole = " + (string)i + "; hole_min_distance = " + (string)((hole_diameter.x + ball_diameter.x)/2) + "; hole_distance = " + (string)hole_distance);
+            //llOwnerSay("hole = " + (string)i + "; hole_min_distance = " + (string)((hole_diameter.x + ball_diameter.x)/2) + "; hole_distance = " + (string)hole_distance);
             return i;
+        }
+        if (hole_distance > 10)
+        {
+            llRegionSayTo(rezzer_key, say_chan, "scratch");
+            ball_scratch()
         }
         ++i;
     }
@@ -91,7 +97,8 @@ ball_scratch()
     llSetTimerEvent(0);
     llSetLinkAlpha(LINK_SET, 0.0, ALL_SIDES);
     llSetStatus(STATUS_PHYSICS, FALSE);
-    llSetPos(rez_pos);   
+    llSetPos(rez_pos);
+    ball_scratched = FALSE;   
     llStopSound(); 
     timer_count = 0;
     llSetTimerEvent(0);
@@ -135,15 +142,6 @@ default
         {
             llDie();
         }
-        else if (message == "die")
-        {
-            llTriggerSound(llList2Key(ball_holedropsounds, (integer)llFrand(llGetListLength(ball_holedropsounds))), ball_holedropvolume);
-            llDie();      
-        }
-        else if (message == "scratch")
-        {
-            ball_scratch();
-        }
         else if (message == "gameover")
         {
             llDie();
@@ -163,27 +161,14 @@ default
             if (hole_number != -1 && message_sent == FALSE)
             {
                 llRegionSayTo(rezzer_key, rezzer_channel, "hole_"+(string)hole_number + " " + (string)llGetKey());
-                llOwnerSay("hole_"+(string)hole_number + " " + (string)llGetKey());
-                message_sent == TRUE;
+                llDie();
+                //llOwnerSay("hole_"+(string)hole_number + " " + (string)llGetKey());
             } 
         }
     }
-    collision_start(integer num_detected)
+    collision(integer num_detected)
     {
-        if (llDetectedKey(0) != rezzer_key && llKey2Name(llDetectedKey(0)) != llGetObjectName())
-        {
-            llRegionSayTo(rezzer_key, say_chan, "scratch");
-            ball_scratch();
-        }
-        else
-        {
-            llTriggerSound(llList2Key(ball_hitsounds, (integer)llFrand(llGetListLength(ball_hitsounds))-1), ball_hitvolume);
-            ball_rollsound();   
-        }
-    }
-    land_collision_start( vector pos )
-    {
-        llRegionSayTo(rezzer_key, say_chan, "scratch");
-       ball_scratch();
+        llTriggerSound(llList2Key(ball_hitsounds, (integer)llFrand(llGetListLength(ball_hitsounds))-1), ball_hitvolume);
+        ball_rollsound(); 
     }
 }

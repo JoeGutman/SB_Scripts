@@ -57,6 +57,7 @@ integer scoreboard_ballcountlink; // the scoreboard slot that shows how many bal
 string scoreboard_ballcountname = "ballcount";
 integer scoreboard_flash;
 integer scoreboard_flashlimit = 3; // How many times the scoreboard will flash at gameover
+float scoreboard_flashspeed = 0.5; // how fast, in seconds, the scoreboard will flash after game over
 list digital_numbers = ["22569582-40bd-5d95-254e-644cc4ef5129","4241ac4c-0b63-69d8-f048-d24d3bbd58ac","92e5fe83-cea4-6bfd-c32c-21ee32a15b90","7ab4ca65-528f-aeab-f7c4-de7e9dd0cd48","11dceab3-9121-d9ac-8741-34ccaa509f0d","d9d87ec3-7379-c859-e663-d7641736df08","5ae3f95c-91e8-9683-2666-7b2ae1ebd9b0","c3d04bb9-2a91-6857-944a-8a73caaf1f42","6df27617-a5f8-8f14-f196-490089ba8955","4196499f-7554-16ea-d545-2bad00f2f045","ae8f016c-8ccc-b1d0-3a6a-213d1ba8e13a"];
 
 
@@ -324,7 +325,7 @@ state pay
             list hole_positions = [];
 
             integer i = 0;
-            while (i < hole_count) //get hole positions and sizes for ball position tracking
+            while (i < hole_count) //get hole positions and sizes for ball position tracking after new game trigger, incase game position/rotation have been adjusted without script being reset.
             {
                 hole_sizes += llList2Vector(llGetLinkPrimitiveParams(llList2Integer(hole_links, i), [PRIM_SIZE]), 0);  
                 hole_positions += llGetPos() + (llList2Vector(llGetLinkPrimitiveParams(llList2Integer(hole_links, i), [PRIM_POS_LOCAL]),0)*llGetRot()); 
@@ -448,14 +449,17 @@ state gameover
     state_entry()
     {
         llMessageLinked(LINK_THIS, 0, "Ambient Off", NULL_KEY);
+
+        //reset player controls
         llSetScriptState("Player_Controls", FALSE);
         llRegionSayTo(player, 0, "Game over! You have scored " + (string)score + " points.");
 
         player = NULL_KEY;
         llMessageLinked(LINK_ROOT, 0, "game over", NULL_KEY);
 
+        //clear ball settings
         integer i = 0;
-        while (i < ballcount_limit)
+        while (i < ballcount_limit) //send delete message to all bases incase any remain after game over.
         {
             llRegionSayTo((key)llList2Key(ball_keys, i), Key2AppChan((key)llList2Key(ball_keys, i)), "gameover");    
             ++i;
@@ -477,9 +481,9 @@ state gameover
         llSetScriptState("Player_Controls", TRUE);
         llResetOtherScript("Player_Controls");
 
-        if (ballcount > 0) //trigger scoreboard flashing
+        if (ballcount > 0) //trigger scoreboard flashing once every interval
         {
-            llSetTimerEvent(.5);
+            llSetTimerEvent(scoreboard_flashspeed);
         }
         else
         {
@@ -490,7 +494,7 @@ state gameover
 
     timer()
     {
-        if (scoreboard_flash < scoreboard_flashlimit*2)
+        if (scoreboard_flash < scoreboard_flashlimit*2) //flash scoreboard when gameover for X intervals
         {
             if (llList2Integer(llGetLinkPrimitiveParams(scoreboard_scorelink, [PRIM_FULLBRIGHT, ALL_SIDES]), 0) == TRUE)
             {
@@ -503,7 +507,7 @@ state gameover
             }
             scoreboard_flash ++;
         }
-        else
+        else //go back to pay state after score has been flashed
         {
             llSetTimerEvent(0);
             scoreboard_flash = 0;
