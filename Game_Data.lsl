@@ -31,7 +31,7 @@ key object; //detected objects that have collided
 //ball settings
 list ball_keys;
 list balls_scoredkeys;
-integer ballcount;
+integer ballcount = 0;
 integer ballcount_thrown = 9;
 integer ballcount_limit = 9;
 string ball_name = "[BBS] Skeeball Ball";
@@ -324,7 +324,7 @@ state pay
             list hole_positions = [];
 
             integer i = 0;
-            while (i < hole_count)
+            while (i < hole_count) //get hole positions and sizes for ball position tracking
             {
                 hole_sizes += llList2Vector(llGetLinkPrimitiveParams(llList2Integer(hole_links, i), [PRIM_SIZE]), 0);  
                 hole_positions += llGetPos() + (llList2Vector(llGetLinkPrimitiveParams(llList2Integer(hole_links, i), [PRIM_POS_LOCAL]),0)*llGetRot()); 
@@ -332,11 +332,11 @@ state pay
             }
 
             hole_settings = hole_positions + hole_sizes;
-            llOwnerSay(llList2CSV(hole_settings));
+            //llOwnerSay(llList2CSV(hole_settings));
 
             llTriggerSoundLimited(skeeball_paysound, skeeball_paysound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>); //skeeball new game music
             script_time = llGetTime();
-            llRezObject(ball_name, llGetPos() + (<0,0, 2.5> * llGetRot()), ZERO_VECTOR, ZERO_ROTATION, 0);  
+            llRezObject(ball_name, llGetPos() + (<0,0, 2.5> * llGetRot()), ZERO_VECTOR, ZERO_ROTATION, 0); //rez first ball to trigger pre-rez of the rest 
         }
     }
     timer()
@@ -344,29 +344,29 @@ state pay
         //llOwnerSay("state play");
         state play;
     }
-    object_rez(key id)
+    object_rez(key id) //pre-rezzing balls
     {
-        ball_keys += id;
-        remaining_time = skeeball_paysound_len - (llGetTime() - script_time);
+        ball_keys += id; //add rezzed ball key to list for communication and tracking
+        remaining_time = skeeball_paysound_len - (llGetTime() - script_time); // get remaining time for startup sound to play
 
-        if (llGetListLength(ball_keys) < ballcount_limit)  
+        if (llGetListLength(ball_keys) < ballcount_limit) //check if all balls have rezzed  
         {
             //llOwnerSay((string)llGetListLength(ball_keys));
             llRezObject(ball_name, llGetPos() + (<0,0, 2.5> * llGetRot()), ZERO_VECTOR, ZERO_ROTATION, 0); 
         }
-        else if (remaining_time <= 0)
+        else if (remaining_time <= 0) //if rezzing balls was less than or longer than startup sound then continue on.
         {
             llMessageLinked(LINK_ROOT, 1, llList2CSV(ball_keys), player);
             state play;
         }
-        else 
+        else //if rezzing balls was shorter than startup sound start timer with remaining time.
         {
             llSetTimerEvent(remaining_time);
         }  
     }
     touch(integer num_detected)
     {
-        if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player)
+        if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player) //quit button pressed
         {
             llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbuttonsound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             if (ballcount <= 0)
@@ -382,13 +382,13 @@ state play
 {
     state_entry()
     {
-        //llOwnerSay(llList2CSV(ball_keys));
         new_game();
+        //llOwnerSay(llList2CSV(ball_keys));
         llSetTimerEvent(timeout_length);
     }
     touch(integer num_detected)
     {
-        if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player)
+        if(llDetectedLinkNumber(0) == quitbutton_link && llDetectedKey(0) == player) //quit button pressed
         {
             llTriggerSoundLimited(skeeball_quitbuttonsound, skeeball_quitbuttonsound_vol, llGetPos() + <sound_offset, sound_offset, sound_offset>, llGetPos() + <-sound_offset, -sound_offset, -sound_offset>);
             if (ballcount <= 0)
@@ -416,27 +416,21 @@ state play
     }
     listen(integer channel, string name, key id, string message)
     {
-        if (llSubStringIndex( message, "hole_" ) != -1)
+        if (llSubStringIndex( message, "hole_" ) != -1) //check if the message is a hole and add holes point value to score
         {
+            llSetTimerEvent(timeout_length);
             list message_list = llParseString2List(message, [" "], []);
-            if (llList2String(message_list, 0) == "hole_1")
-            {
-                //llOwnerSay("scratch_message");
-                //llOwnerSay(llList2CSV(balls_scoredkeys) + "list");
-                //llOwnerSay(llList2CSV(message_list));
-                llRegionSayTo((key)llList2String(message_list, 1), Key2AppChan((key)llList2String(message_list, 1)), "scratch");
-                ballcount_thrown ++;
-                ballgutter_set();   
-            }
-            else
-            {
-                llRegionSayTo((key)llList2String(message_list, 1), Key2AppChan((key)llList2String(message_list, 1)), "die");
-                score += (integer)llList2String(llGetLinkPrimitiveParams(llDetectedLinkNumber(0), [PRIM_DESC]), 0);;
-                scoreboard_set();
-            } 
+            score += (integer)llList2String(llGetLinkPrimitiveParams(Name2LinkNum(llList2String(message_list, 0)), [PRIM_DESC]), 0); //get hole point value and add to score
+            //llOwnerSay((string)score);
+
+            ++ballcount;
+            //llOwnerSay((string)ballcount);
+            scoreboard_set();
+            ballcount_set();
         }
-        else if (message == "scratch")
+        else if (message == "scratch") //if ball scratched
         {
+            llSetTimerEvent(timeout_length);
             llMessageLinked(LINK_THIS, 0, "scratch", NULL_KEY);
             ballcount_thrown ++;
             ballgutter_set();          
