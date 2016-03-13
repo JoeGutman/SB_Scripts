@@ -50,7 +50,7 @@ integer distance_to_hole()
         if (hole_distance > 10)
         {
             llRegionSayTo(rezzer_key, say_chan, "scratch");
-            ball_scratch()
+            ball_scratch();
         }
         ++i;
     }
