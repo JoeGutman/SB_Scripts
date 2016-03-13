@@ -8,7 +8,7 @@ string newgame_message = "Thank you for paying. Your game will start shortly. Qu
 integer quitbutton_link;
 string quit_name = "quit";
 string gameover_message = "The game has ended!";
-integer timeout_length = 180; //length, in seconds the game can be inactive before restarting.
+integer timeout_length = 120; //length, in seconds the game can be inactive before restarting.
 
 //aim settings
 integer arrow_link;
@@ -429,7 +429,7 @@ state play
             scoreboard_set();
             ballcount_set();
         }
-        else if (message == "scratch") //if ball scratched
+        else if (llSubStringIndex( message, "scratch" ) != -1) //if ball scratched
         {
             llSetTimerEvent(timeout_length);
             llMessageLinked(LINK_THIS, 0, "scratch", NULL_KEY);
