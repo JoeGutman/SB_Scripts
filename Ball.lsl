@@ -92,9 +92,9 @@ ball_rollsound()
 
 ball_scratch()
 {
+    llSetTimerEvent(0);
     message_sent == FALSE;
     llTriggerSound(llList2Key(ball_hitsounds, (integer)llFrand(llGetListLength(ball_hitsounds))-1), ball_hitvolume);
-    llSetTimerEvent(0);
     llSetLinkAlpha(LINK_SET, 0.0, ALL_SIDES);
     llSetStatus(STATUS_PHYSICS, FALSE);
     llSetPos(rez_pos);
@@ -102,6 +102,7 @@ ball_scratch()
     llStopSound(); 
     timer_count = 0;
     llSetTimerEvent(0);
+    llRegionSayTo(rezzer_key, say_chan, "ball_reset " + (string)llGetKey());
 }
 
 default
@@ -128,6 +129,7 @@ default
         } 
         else if (llGetListLength(llCSV2List(message)) == 3)
         {
+
             rez_settings = llCSV2List(message);
             //llOwnerSay(llList2CSV(rez_settings));
 
@@ -153,7 +155,7 @@ default
         if (timer_count >= ball_life)
         {
             ball_scratch();
-            llRegionSayTo(rezzer_key, say_chan, "scratch");
+            llRegionSayTo(rezzer_key, say_chan, "scratch " + (string)llGetKey());
         }
         else
         {
@@ -166,9 +168,25 @@ default
             } 
         }
     }
-    collision(integer num_detected)
+    collision_start(integer num_detected)
     {
         llTriggerSound(llList2Key(ball_hitsounds, (integer)llFrand(llGetListLength(ball_hitsounds))-1), ball_hitvolume);
-        ball_rollsound(); 
+        ball_rollsound();   
+        if (llDetectedKey(0) != rezzer_key && llKey2Name(llDetectedKey(0)) != llGetObjectName() && ball_scratched == FALSE)
+        {
+            ball_scratched == TRUE;
+            llRegionSayTo(rezzer_key, say_chan, "scratch " + (string)llGetKey());
+            //llOwnerSay("prim scratch");
+            ball_scratch();
+        }
+    }
+    land_collision_start( vector pos )
+    {
+        if (ball_scratched == FALSE)
+        {
+            ball_scratched == TRUE;
+            llRegionSayTo(rezzer_key, say_chan, "scratch " + (string)llGetKey());
+            ball_scratch();
+        }
     }
 }
